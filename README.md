@@ -108,3 +108,66 @@ Integration, E2E tests - in case of time capacity.
 NoSQL version - in case of time capacity.
 
 ###2.2 Description
+
+1) Dependencies \
+1.1) Run via docker containers:
+    - Install [docker](https://docs.docker.com/get-docker/)
+      and [Docker Compose](https://docs.docker.com/compose/install/)
+    - Build and run docker containers:
+    ```sh
+    docker-compose -f docker-compose.yml build
+    docker-compose -f docker-compose.yml up
+    sudo docker exec –it meet-app zsh
+    ```
+    - Pull and run docker containers:
+    ```sh
+    docker pull nestu/meet-app:core
+    # https://docs.docker.com/engine/reference/run/
+    ```
+    NOTE: Public image is not created due to task limitation (private mode)
+
+1.2) Run locally:
+
+- OS: Better Linux base but can be used other (even Win Linux virtual
+  subsystem)
+- Install [Pyton >= 3.10](https://www.python.org/downloads/) with pip
+- Install Python dependency management and packaging tool [poetry](https://python-poetry.org/docs/)
+- Install dependencies to .venv dir of the project
+```sh
+poetry config virtualenvs.in-project true
+poetry shell
+poetry install
+```
+
+1.3) Access to application:
+- Via browser http://localhost:8080/ \
+NOTE: FE (UI) is not mandatory, will be added based on the time capacity.
+- Via API requests: \
+a) [Fetch API of Chrome](https://jsonplaceholder.typicode.com/) e.g.:
+   ```js
+   // GET
+   fetch('https://jsonplaceholder.typicode.com/posts/1')
+       .then(res => res.json())
+       .then(console.log)
+   
+   // POST
+   fetch('https://jsonplaceholder.typicode.com/posts', {
+       method: 'POST',
+       body: JSON.stringify({
+           title: 'foo',
+           body: 'bar',
+           userId: 1
+       }),
+       headers: {
+           'Content-type': 'application/json; charset=UTF-8'
+       }
+   })
+       .then(res => res.json())
+       .then(console.log)
+   ```
+   b) Postman app prepared [collection](https://learning.postman.com/docs/collaborating-in-postman/sharing/)
+   
+   [Download](tests/data/postman_collection.json), import and [run](https://learning.postman.com/docs/running-collections/working-with-data-files/) the collection.
+
+## 3. TODO
+- Add tests/data/postman_collection.json - actual data
