@@ -8,6 +8,12 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.10"
 Flask = "^2.0.3"
+pandas = "^1.4.1"
+SQLAlchemy = "^1.4.31"
+mongoengine = "^0.24.0"
+python-dotenv = "^0.19.2"
+SQLAlchemy-Utils = "^0.38.2"
+progressbar = "^2.5"
 
 [tool.poetry.dev-dependencies]
 
