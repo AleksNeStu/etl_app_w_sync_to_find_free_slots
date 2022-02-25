@@ -9,7 +9,7 @@ import settings
 from bin import load_data
 from bin import run_migrations
 from data import db_session
-
+from infra.response_mod import response
 
 app = flask.Flask(__name__)
 app.deploying = bool(int(os.getenv('IS_DEPLOY', '0')))
@@ -81,6 +81,12 @@ def update_cfg():
         **settings.FLASK_ENV_CFG,
         **settings.FLASK_SEC_ENV_CFG,
     })
+
+# TODO: Sync via Python and(or) cron
+@app.route('/load_data')
+@response()
+def load_meet_data():
+    return load_data.run()
 
 
 if __name__ in ('__main__', 'meet_app.app'):

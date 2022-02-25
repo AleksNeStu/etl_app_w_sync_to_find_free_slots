@@ -79,3 +79,8 @@ NO_SQL_ENV_PATH = os.getenv(
         PROJECT_ROOT_DIR, 'configs/no_sql.env'))
 NOSQL_DB_CONNECTION = dotenv.dotenv_values(NO_SQL_ENV_PATH)
 # TODO: If IS_DEPLOY=1 update NOSQL_DB_CONNECTION by {MONGODB_USERNAME: ..., MONGODB_PASSWORD: ...}
+
+
+# Meet app
+SYNC_DATA_URL = ('https://builds.lundalogik.com/api/v1/'
+                 'builds/freebusy/versions/1.0.0/file')

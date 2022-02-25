@@ -79,7 +79,7 @@ https://builds.lundalogik.com/api/v1/builds/freebusy/versions/1.0.0/file
    notify stakeholders.
 
 2) Perform ETL ops like: a) download (sync) txt data b) pars with filtering and
-   add (associate) randomly generated user LDAP(s) to id(s) c) load to e.g.
+   add (associate) generated user names to id(s) c) load to e.g.
    ORM (ODM) models d) populate models to DB e) add migration(s) mechanism for
    DB schema changes. NOTES:
 
@@ -171,3 +171,15 @@ a) [Fetch API of Chrome](https://jsonplaceholder.typicode.com/) e.g.:
 
 ## 3. TODO
 - Add tests/data/postman_collection.json - actual data
+- After project finish add docker and local run details to md file.
+- For nor app load data from 3rd party API without storing to the file
+  system,and pars load data to DB. Improve by adding async version, errors
+  checks of API and parsing etc and format of data, versioning of downloaded
+  data for future (like dumps) for investigation purposes, data merge logic.
+- Rewrite interpretation
+
+## 4. Examples
+1) `syncs` table with examples:
+<p align="center">
+<img src="assets/sync-1.png" alt="`syncs` table with examples" width="100%">
+</p>
