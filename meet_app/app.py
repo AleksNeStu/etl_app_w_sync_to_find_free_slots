@@ -4,6 +4,10 @@ import os
 import sys
 
 import flask
+import pytz
+from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 
 import settings
 from bin import load_data
@@ -11,10 +15,12 @@ from bin import run_migrations
 from data import db_session
 from infra.response_mod import response
 
+
 app = flask.Flask(__name__)
 app.deploying = bool(int(os.getenv('IS_DEPLOY', '0')))
 app.is_sql_ver = bool(int(os.getenv('IS_SQL_VERSION', '0')))
 
+scheduler = BackgroundScheduler()
 
 def main():
     configure()
@@ -46,8 +52,6 @@ def setup_db():
         db_session.init_sql(settings.DB_CONNECTION)
         # enable for flask app not in debug mode to avoid auto apply
         run_migrations.run()
-        # TODO: Add scheduler (Python and(or) OS versions)
-        load_data.run()
     else:
         # TODO: Add MongoDB version
         db_session.init_no_sql(**settings.NOSQL_DB_CONNECTION)
@@ -64,8 +68,16 @@ def generate_all_db_models():
 
 
 def run_actions():
-    # TODO: Add run actions
-    pass
+    # Sync data on application run.
+    load_data.run()
+    scheduler.start()
+
+
+# Sync data by interval.
+@scheduler.scheduled_job(
+    IntervalTrigger(timezone=pytz.utc, **settings.SYNC_INTERVAL))
+def load_data_job():
+    load_data.run()
 
 
 def init_logging():
@@ -82,7 +94,7 @@ def update_cfg():
         **settings.FLASK_SEC_ENV_CFG,
     })
 
-# TODO: Sync via Python and(or) cron
+# Endpoint to load data by demand.
 @app.route('/load_data')
 @response()
 def load_meet_data():

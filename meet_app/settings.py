@@ -84,3 +84,5 @@ NOSQL_DB_CONNECTION = dotenv.dotenv_values(NO_SQL_ENV_PATH)
 # Meet app
 SYNC_DATA_URL = ('https://builds.lundalogik.com/api/v1/'
                  'builds/freebusy/versions/1.0.0/file')
+# apscheduler.triggers.interval.IntervalTrigger
+SYNC_INTERVAL = dict(weeks=0, days=0, hours=0, minutes=30, seconds=0)

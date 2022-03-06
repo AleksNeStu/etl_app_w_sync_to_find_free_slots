@@ -73,6 +73,8 @@ https://builds.lundalogik.com/api/v1/builds/freebusy/versions/1.0.0/file
 
 ### 2.1 Interpretation
 
+0) Suppose UTC time zone everywhere across the app.
+
 1) Check by a set period of time provided public API ('
    people-time-allocation-api') which is not required auth and in case of any
    sync errors (like changed API contract, auth needed, server offline, etc) -
