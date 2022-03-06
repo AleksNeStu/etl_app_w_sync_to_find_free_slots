@@ -20,4 +20,4 @@ class Sync(SqlAlchemyBase):
     status: str = sa.Column(sa.Enum(SyncStatus), nullable=False)
     resp_headers = sa.Column(sa.JSON, default={})
     results = sa.Column(sa.JSON, default={})
-    errors = sa.Column(sa.JSON, default={})
+    errors = sa.Column(sa.JSON, default=[])

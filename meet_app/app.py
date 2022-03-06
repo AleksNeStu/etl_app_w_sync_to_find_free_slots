@@ -94,7 +94,7 @@ def update_cfg():
         **settings.FLASK_SEC_ENV_CFG,
     })
 
-# Endpoint to load data by demand.
+# Sync data manually.
 @app.route('/load_data')
 @response()
 def load_meet_data():

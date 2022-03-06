@@ -95,34 +95,35 @@ def update_obj_attr_values(obj, obj_attrs_map, attr_names=None, is_db=True):
         act_val = getattr(obj, attr_name)
         new_val = obj_attrs_map.get(attr_name)
 
-        if act_val:
+        # e.g. getting SA ORM obj isnt from DB def val is None, from Python
+        # code is class default like {}.
+        if act_val is not None:
             attr_val = None
             if all(isinstance(v, str) for v in [act_val, new_val]):
                 attr_val = ', '.join([act_val, new_val])
 
             if is_db:
                 # JSON flow.
-                if is_json_str(act_val):
-                    act_val = json.loads(act_val)
-                    if is_json_str(new_val):
-                        new_val = json.loads(new_val)
-                    if is_json_obj(new_val):
+                if is_json(act_val):
+                    act_val = (
+                        json.loads(act_val)
+                        if is_json_str(act_val) else act_val)
 
-                        # Update values.
-                        if all(isinstance(v, dict)
-                               for v in [act_val, new_val]):
-                            act_val.update(new_val)
-                        elif all(isinstance(v, list)
-                                 for v in [act_val, new_val]):
-                            act_val.extend(new_val)
-                        elif all(isinstance(v, (int, bool, float))
-                                 for v in [act_val, new_val]):
-                            act_val = new_val
+                    # Update values.
+                    if all(isinstance(v, dict)
+                           for v in [act_val, new_val]):
+                        act_val.update(new_val)
+                    elif all(isinstance(v, list)
+                             for v in [act_val, new_val]):
+                        act_val.extend(new_val)
+                    elif all(isinstance(v, (int, bool, float))
+                             for v in [act_val, new_val]):
+                        act_val = new_val
 
-                        # Actualize final attr value.
-                        attr_val = json.dumps(act_val)
-                        setattr(obj, attr_name, attr_val)
-                        continue
+                    # Actualize final attr value.
+                    attr_val = json.dumps(act_val)
+                    setattr(obj, attr_name, attr_val)
+                    continue
 
             # STR flow.
             setattr(obj, attr_name, attr_val)

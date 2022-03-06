@@ -1,21 +1,17 @@
 """Load meet data to DB."""
 import datetime
-import json
 import logging
 import os
-# noinspection PyPackageRequirements,PyPackageRequirements
 import sys
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-# add_module_to_sys_path
-import pytz
-
 from data.models.syncs import Sync
 from enums.sa import SyncStatus
 from services import sync_service
-from utils.py import DictToObj
+from utils import py as py_utils
 
+# add_module_to_sys_path
 directory = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, directory)
@@ -23,8 +19,10 @@ sys.path.insert(0, directory)
 import settings
 import data.db_session as db_session
 
+
 req, resp, last_sync, actual_sync, errors = None, None, None, None, []
 
+#TODO: results w/ structure like dict items, errors w/o structure
 def run():
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     logging.info("Load meet data to DB")
@@ -48,6 +46,7 @@ def is_new_data_for_sync(session):
     )
 
     session.add(actual_sync)
+    # sync_service.get_sync(get_kwargs={'id': 1}, session=session)
     last_sync = sync_service.get_latest_finished_sync(session)
 
     if last_sync:
@@ -63,22 +62,28 @@ def is_new_data_for_sync(session):
         try:
             resp = urlopen(req)
             return True
+
         #TODO: Exdent error handling.
         except Exception as err:
+            error_msg = f'Error on try to load remote meet data: {err}'
+            errors.append(error_msg)
+
             actual_sync.end_date = datetime.datetime.now()
             actual_sync.resp_headers = dict(getattr(err, 'headers', {}))
+
             # Skip due to not modified 304 status code (no new content)
             if type(err) == HTTPError and err.status == 304:
                 actual_sync.status = SyncStatus.skipped
+                logging.warning(error_msg)
 
-            # Skip due to errors.
             else:
-                # TODO: Consider avoid of the infinite loop.
-                logging.error(
-                    f'Error on try to load remote meet data: {err}')
-                errors.append(str(err))
-                actual_sync.errors = errors
                 actual_sync.status = SyncStatus.errors
+                logging.error(error_msg)
+                raise err
+
+
+            py_utils.update_obj_attr_values(
+                actual_sync, dict(errors=[error_msg]))
 
             session.commit()
             return False
