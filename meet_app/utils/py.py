@@ -3,7 +3,7 @@ import sys
 from importlib import import_module
 from inspect import isclass
 from pkgutil import iter_modules
-
+import json
 
 class DictToObj(dict):
     def __init__(self, *args, default_val='', **kwargs):
@@ -43,7 +43,86 @@ def add_module_do_sys_path(file, dir_path_part):
     sys.path.insert(0, directory)
 
 
-# TODO: make attr_names with processors funcs to calc specific values
-def set_obj_attr_values(obj, obj_attrs_map, attr_names):
+def is_json_str(data_str):
+    try:
+        json.loads(data_str)
+    except Exception:
+        return False
+
+    return True
+
+
+def is_json_obj(data_obj):
+    try:
+        json.dumps(data_obj)
+    except Exception:
+        return False
+
+    return True
+
+def is_json(data):
+    return is_json_str(data) or is_json_obj(data)
+
+def set_obj_attr_values(obj, obj_attrs_map, attr_names=None, is_db=True):
+    # Skip no relevant to update cases w/ errors handling.
+    # obj_attrs_map can contain e.g. list w/o json.dumps
+    attr_names = attr_names or obj_attrs_map.keys()
+
     for attr_name in attr_names:
-        setattr(obj, attr_name, obj_attrs_map.get(attr_name))
+        attr_val = obj_attrs_map.get(attr_name)
+
+        if is_db:
+            # JSON flow.
+            if is_json(attr_val):
+                # Actualize final attr value.
+                attr_val = (
+                    json.dumps(attr_val)
+                    if is_json_obj(attr_val) else attr_val)
+                setattr(obj, attr_name, attr_val)
+                continue
+
+        # STR flow.
+        setattr(obj, attr_name, attr_val)
+
+
+#TODO: Add check existing values during updates, to avoud duplications.
+def update_obj_attr_values(obj, obj_attrs_map, attr_names=None, is_db=True):
+    # Skip no relevant to update cases w/ errors handling.
+    # obj_attrs_map can contain e.g. list w/o json.dumps
+    attr_names = attr_names or obj_attrs_map.keys()
+
+    for attr_name in attr_names:
+        act_val = getattr(obj, attr_name)
+        new_val = obj_attrs_map.get(attr_name)
+
+        if act_val:
+            attr_val = None
+            if all(isinstance(v, str) for v in [act_val, new_val]):
+                attr_val = ', '.join([act_val, new_val])
+
+            if is_db:
+                # JSON flow.
+                if is_json_str(act_val):
+                    act_val = json.loads(act_val)
+                    if is_json_str(new_val):
+                        new_val = json.loads(new_val)
+                    if is_json_obj(new_val):
+
+                        # Update values.
+                        if all(isinstance(v, dict)
+                               for v in [act_val, new_val]):
+                            act_val.update(new_val)
+                        elif all(isinstance(v, list)
+                                 for v in [act_val, new_val]):
+                            act_val.extend(new_val)
+                        elif all(isinstance(v, (int, bool, float))
+                                 for v in [act_val, new_val]):
+                            act_val = new_val
+
+                        # Actualize final attr value.
+                        attr_val = json.dumps(act_val)
+                        setattr(obj, attr_name, attr_val)
+                        continue
+
+            # STR flow.
+            setattr(obj, attr_name, attr_val)
