@@ -77,7 +77,7 @@ def set_obj_attr_values(obj, obj_attrs_map, attr_names=None, is_db=True):
                 # Actualize final attr value.
                 attr_val = (
                     json.dumps(attr_val)
-                    if is_json_obj(attr_val) else attr_val)
+                    if is_json_obj(attr_val) and not isinstance(attr_val, str) else attr_val)
                 setattr(obj, attr_name, attr_val)
                 continue
 

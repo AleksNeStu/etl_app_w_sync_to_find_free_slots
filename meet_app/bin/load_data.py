@@ -1,5 +1,7 @@
-"""Load meet data to DB."""
+"""Load remote meet data to DB."""
+import copy
 import datetime
+import json
 import logging
 import os
 import sys
@@ -7,7 +9,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from data.models.syncs import Sync
-from enums.sa import SyncStatus
+from enums.sa import SyncStatus, SyncEndReason
 from services import sync_service
 from utils import py as py_utils
 
@@ -19,22 +21,42 @@ sys.path.insert(0, directory)
 import settings
 import data.db_session as db_session
 
+# `results` is related only to data parsing.
+req, resp, last_sync, actual_sync, errors, parsing_results = (
+    None, None, None, None, [], {})
 
-req, resp, last_sync, actual_sync, errors = None, None, None, None, []
 
 #TODO: results w/ structure like dict items, errors w/o structure
 def run():
+    global last_sync, actual_sync, req, resp, errors, parsing_results
+
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     logging.info("Load meet data to DB")
 
-    load_results = {"Load meet data is done"}
-    remote_data = get_remote_data()
-    # TODO: Fill sync statuses
+    actual_sync_kwargs = {}
+    sync = None
 
-    # TODO: Add logic to pars remote_data e.g. using pandas
+    with db_session.create_session() as session:
+        remote_data = get_remote_data(session)
+        if remote_data:
+            # Parsing and storing to DB got data.
+            # TODO: Add logic to pars remote_data e.g. using pandas
 
+            # Store parsing results.
+            actual_sync_kwargs.update(**dict(
+                end_date=datetime.datetime.now(),
+                status=SyncStatus.finished,
+                end_reason=SyncEndReason.data_parsing_end,
+                parsing_results=parsing_results))
+            py_utils.set_obj_attr_values(actual_sync, actual_sync_kwargs)
+            session.commit()
 
-    return load_results
+    sync = copy.deepcopy(actual_sync)
+    # Set to None globals shares after each sync
+    req, resp, last_sync, actual_sync, errors = None, None, None, None, []
+
+    return sync
+
 
 def is_new_data_for_sync(session):
     global last_sync, actual_sync, req, resp, errors
@@ -42,7 +64,7 @@ def is_new_data_for_sync(session):
     req = Request(settings.SYNC_DATA_URL)
     actual_sync = Sync(
         start_date=datetime.datetime.now(),
-        status=SyncStatus.in_progress
+        status=SyncStatus.started
     )
 
     session.add(actual_sync)
@@ -50,15 +72,17 @@ def is_new_data_for_sync(session):
     last_sync = sync_service.get_latest_finished_sync(session)
 
     if last_sync:
+        actual_sync_kwargs = {}
         # resp_headers = DictToObj(
         #     default_val=None, **last_sync.resp_headers)
         # TODO: Add generic API checks.
         # Suppose to use API contract of AWS.
         # https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/
         # RequestAndResponseBehaviorS3Origin.html
-        req.add_header('If-Match', last_sync.resp_headers.get('ETag'))
+        last_sync_headers = json.loads(last_sync.resp_headers)
+        req.add_header('If-Match', last_sync_headers.get('ETag'))
         req.add_header('If-Modified-Since',
-                       last_sync.resp_headers.get('Last-Modified'))
+                       last_sync_headers.get('Last-Modified'))
         try:
             resp = urlopen(req)
             return True
@@ -67,25 +91,28 @@ def is_new_data_for_sync(session):
         except Exception as err:
             error_msg = f'Error on try to load remote meet data: {err}'
             errors.append(error_msg)
-
-            actual_sync.end_date = datetime.datetime.now()
-            actual_sync.resp_headers = dict(getattr(err, 'headers', {}))
+            actual_sync_kwargs.update(**dict(
+                end_date=datetime.datetime.now(),
+                resp_headers=dict(getattr(err, 'headers', {})),
+                errors=[error_msg]))
 
             # Skip due to not modified 304 status code (no new content)
             if type(err) == HTTPError and err.status == 304:
-                actual_sync.status = SyncStatus.skipped
+                actual_sync_kwargs.update(**dict(
+                    status=SyncStatus.skipped,
+                    end_reason=SyncEndReason.no_new_remote_data))
                 logging.warning(error_msg)
 
             else:
-                actual_sync.status = SyncStatus.errors
+                actual_sync_kwargs.update(**dict(
+                    status=SyncStatus.errors,
+                    end_reason=SyncEndReason.remote_server_errors))
                 logging.error(error_msg)
                 raise err
 
-
-            py_utils.update_obj_attr_values(
-                actual_sync, dict(errors=[error_msg]))
-
+            py_utils.set_obj_attr_values(actual_sync, actual_sync_kwargs)
             session.commit()
+
             return False
 
     session.commit()
@@ -93,30 +120,40 @@ def is_new_data_for_sync(session):
     return True
 
 
-def get_remote_data():
+def get_remote_data(session):
     global last_sync, actual_sync, req, resp, errors
 
-    with db_session.create_session() as session:
-        if is_new_data_for_sync(session):
-            try:
-                resp = resp or urlopen(req)
-                content = resp.read()
-                actual_sync.end_date = datetime.datetime.now()
-                actual_sync.resp_headers = dict(getattr(resp, 'headers', {}))
-                actual_sync.status = SyncStatus.finished
-                session.commit()
-                return content
+    if is_new_data_for_sync(session):
+        actual_sync_kwargs = {}
+        try:
+            resp = resp or urlopen(req)
+            content = resp.read()
 
-            except Exception as err:
-                # TODO: Add more precise error handling
-                errors.append(str(err))
-                actual_sync.errors = errors
-                actual_sync.status = SyncStatus.errors
-                session.commit()
-                logging.error(f'Error on try to load remote meet data: {err}')
+            py_utils.set_obj_attr_values(
+                actual_sync, dict(
+                    resp_headers=dict(getattr(resp, 'headers', {})),
+                    status=SyncStatus.got_data))
+            session.commit()
 
-    # Set to None globals shares after each sync
-    req, resp, last_sync, actual_sync, errors = None, None, None, None, []
+            return content
+
+        # TODO: Add more precise error handling.
+        except Exception as err:
+            error_msg = (
+                f'Error on try to request: {req} remote meet data: {err}')
+            errors.append(error_msg)
+            logging.error(error_msg)
+
+            actual_sync_kwargs.update(**dict(
+                end_date=datetime.datetime.now(),
+                status=SyncStatus.errors,
+                end_reason=SyncEndReason.remote_server_errors))
+            py_utils.set_obj_attr_values(actual_sync, actual_sync_kwargs)
+            py_utils.update_obj_attr_values(
+                actual_sync, dict(errors=[error_msg]))
+            session.commit()
+
+    return
 
 
 def setup_db():
