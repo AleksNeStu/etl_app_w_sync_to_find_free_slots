@@ -26,6 +26,14 @@ def get_latest_finished_sync(session: orm.Session = None,
 
     return res
 
+def get_latest_sync(session: orm.Session = None,
+                    syncs: orm.Query = None) -> Optional[Sync]:
+    syncs = syncs or get_syncs(session)
+    res = syncs.order_by(Sync.id.desc()).first()
+    # syncs.session.close()
+
+    return res
+
 
 def get_sync(get_kwargs: dict, session: orm.Session = None,
              syncs: orm.Query = None) -> Optional[Sync]:
