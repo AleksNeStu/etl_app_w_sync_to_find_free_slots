@@ -135,3 +135,11 @@ out
 gen
 .gitignore
 .idea/*
+
+
+# Project
+node_modules
+supervisord.*
+#db
+generated_all_db_models.py
+flask.env.sec.me

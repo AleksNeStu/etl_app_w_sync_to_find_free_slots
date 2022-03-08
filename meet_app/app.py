@@ -5,7 +5,6 @@ import sys
 
 import flask
 import pytz
-from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
@@ -14,11 +13,12 @@ from bin import load_data
 from bin import run_migrations
 from data import db_session
 from infra.response_mod import response
-
+from migrations import utils as migrations_utils
 
 app = flask.Flask(__name__)
 app.deploying = bool(int(os.getenv('IS_DEPLOY', '0')))
 app.is_sql_ver = bool(int(os.getenv('IS_SQL_VERSION', '0')))
+
 
 scheduler = BackgroundScheduler()
 
@@ -59,12 +59,10 @@ def setup_db():
 
 
 def generate_all_db_models():
-    pass
-    # TODO: Add generate all db models
-    # from migrations import utils as migrations_utils
-    # db_models = migrations_utils.get_models(os.path.join(
-    #     os.path.dirname(__file__), 'data', 'generated_all_db_models.py'))
-    # return db_models
+    db_models = migrations_utils.get_models(os.path.join(
+        os.path.dirname(__file__), 'data', 'generated_all_db_models.py'))
+
+    return db_models
 
 
 def run_actions():
@@ -72,7 +70,7 @@ def run_actions():
     load_data.run()
     scheduler.start()
 
-
+#TODO: Fix duplication of db entiries
 # Sync data by interval.
 @scheduler.scheduled_job(
     IntervalTrigger(timezone=pytz.utc, **settings.SYNC_INTERVAL))

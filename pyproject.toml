@@ -16,6 +16,7 @@ SQLAlchemy-Utils = "^0.38.2"
 progressbar = "^2.5"
 APScheduler = "^3.9.1"
 alembic = "^1.7.6"
+sqlacodegen = "^2.3.0"
 
 [tool.poetry.dev-dependencies]
 
