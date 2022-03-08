@@ -15,6 +15,7 @@ python-dotenv = "^0.19.2"
 SQLAlchemy-Utils = "^0.38.2"
 progressbar = "^2.5"
 APScheduler = "^3.9.1"
+alembic = "^1.7.6"
 
 [tool.poetry.dev-dependencies]
 
