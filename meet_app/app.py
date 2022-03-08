@@ -7,6 +7,7 @@ import flask
 import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from services import sync_service
 
 import settings
 from bin import load_data
@@ -67,7 +68,7 @@ def generate_all_db_models():
 
 def run_actions():
     # Sync data on application run.
-    load_data.run()
+    sync = load_data.run()
     scheduler.start()
 
 #TODO: Fix duplication of db entiries
@@ -96,7 +97,8 @@ def update_cfg():
 @app.route('/load_data')
 @response()
 def load_meet_data():
-    return load_data.run()
+    sync = load_data.run()
+    return flask.jsonify(sync)
 
 
 if __name__ in ('__main__', 'meet_app.app'):

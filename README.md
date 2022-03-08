@@ -110,8 +110,25 @@ Integration, E2E tests - in case of time capacity.
 NoSQL version - in case of time capacity.
 
 ###2.2 Description
+1) First sync is happening on the 1st app run time
+(in case app.run(debug=True) app will run 2 times - consider it). Then based on
+settings.SYNC_INTERVAL value. All sync actions logged and stored to DB `Sync` table.
 
-1) Dependencies \
+
+2) There is a possibility to run sync manually via web handler: \
+http://localhost:5000/load_data
+```JSON
+{
+    "end_date": "Tue, 08 Mar 2022 21:35:31 GMT",
+    "end_reason": "no_new_remote_data",
+    "id": 3,
+    "start_date": "Tue, 08 Mar 2022 21:35:31 GMT",
+    "status": "skipped"
+}
+```
+
+
+2) Dependencies \
 1.1) Run via docker containers:
     - Install [docker](https://docs.docker.com/get-docker/)
       and [Docker Compose](https://docs.docker.com/compose/install/)
@@ -179,6 +196,8 @@ a) [Fetch API of Chrome](https://jsonplaceholder.typicode.com/) e.g.:
   checks of API and parsing etc and format of data, versioning of downloaded
   data for future (like dumps) for investigation purposes, data merge logic.
 - Rewrite interpretation
+- Decided to do not add migration chain, to avoid of increasing complexity of test task run.
+- Redo 2.1 interpretation part.
 
 ## 4. Examples
 1) `syncs` table with examples:
