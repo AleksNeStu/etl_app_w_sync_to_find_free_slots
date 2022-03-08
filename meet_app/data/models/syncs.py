@@ -1,14 +1,14 @@
 import datetime
 import json
+from dataclasses import dataclass
 
-import sqlalchemy
 import sqlalchemy as sa
-from sqlalchemy.types import TypeDecorator
 
 from data.models.modelbase import SqlAlchemyBase
-from enums.sa import SyncStatus
+from enums.sa import SyncStatus, SyncEndReason
 
 
+@dataclass
 class Sync(SqlAlchemyBase):
     __tablename__ = 'syncs'
 
@@ -18,6 +18,7 @@ class Sync(SqlAlchemyBase):
     end_date: datetime.datetime = sa.Column(
         sa.DateTime, index=True)
     status: str = sa.Column(sa.Enum(SyncStatus), nullable=False)
-    resp_headers = sa.Column(sa.JSON, default={})
-    results = sa.Column(sa.JSON, default={})
-    errors = sa.Column(sa.JSON, default=[])
+    resp_headers = sa.Column(sa.JSON, default=json.dumps({}))
+    parsing_results = sa.Column(sa.JSON, default=json.dumps({}))
+    errors = sa.Column(sa.JSON, default=json.dumps([]))
+    end_reason: str = sa.Column(sa.Enum(SyncEndReason))
