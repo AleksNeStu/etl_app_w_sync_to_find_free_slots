@@ -86,3 +86,7 @@ SYNC_DATA_URL = ('https://builds.lundalogik.com/api/v1/'
                  'builds/freebusy/versions/1.0.0/file')
 # apscheduler.triggers.interval.IntervalTrigger
 SYNC_INTERVAL = dict(weeks=0, days=0, hours=0, minutes=30, seconds=0)
+
+# Parsing
+# e.g. '3/13/2015 2:00:00 PM'
+DATA_TIME_FORMAT = '%m/%d/%Y %H:%M:%S %p'

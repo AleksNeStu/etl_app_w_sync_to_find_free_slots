@@ -98,6 +98,7 @@ def update_cfg():
 @response()
 def load_meet_data():
     sync = load_data.run()
+    # TODO: Add jsonify for parsing_results, errors
     return flask.jsonify(sync)
 
 
