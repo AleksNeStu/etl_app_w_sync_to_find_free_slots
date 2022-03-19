@@ -10,9 +10,17 @@ class SyncStatus(str, enum.Enum):
     finished: str = 'finished' # meaning got data was parsed
     errors: str = 'errors'
 
+
 @enum.unique
 class SyncEndReason(str, enum.Enum):
     no_new_remote_data: str = 'no_new_remote_data'
     remote_server_errors: str = 'remote_server_errors'
     data_parsing_errors: str = 'data_parsing_errors'
     data_parsing_end: str = 'data_parsing_end'
+
+
+@enum.unique
+class NotSyncedItemReason(str, enum.Enum):
+    duplicated_data: str = 'duplicated_data'
+    duplicated_none: str = 'duplicated_none'
+    not_recognized_data: str = 'not_recognized_data'
