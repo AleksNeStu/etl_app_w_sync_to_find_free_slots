@@ -37,17 +37,20 @@ class Sync(SqlAlchemyBase):
     errors: str = sa.Column(sa.JSON, default=json.dumps([]))
     end_reason: str = sa.Column(sa.Enum(SyncEndReason))
 
-    # extracted users per sync
-    from data.models.users import User
-    # Not `backref` to make attr for User explicit
-    users: List[User] = orm.relationship(
-        User.__name__, back_populates='sync', order_by=[
-            User.name.desc(), User.hash_id.desc(),
-        ])
 
-    # # extracted meets per sync
-    # from data.models.meets import Meet
-    # meets = orm.relationship(Meet.__name__, backref='sync')
-
-    not_synced_items: List[NotSyncedItem] = orm.relationship(
-        NotSyncedItem.__name__, back_populates='sync')
+    #TODO: sqlalchemy.orm.exc.DetachedInstanceError: Parent instance <Sync at 0x7fc1d3099c00> is not bound to a Session; lazy load operation of attribute 'users' cannot proceed (Background on this error at: https://sqlalche.me/e/14/bhk3)
+    #
+    # # extracted users per sync
+    # from data.models.users import User
+    # # Not `backref` to make attr for User explicit
+    # users: List[User] = orm.relationship(
+    #     User.__name__, back_populates='sync', order_by=[
+    #         User.name.desc(), User.hash_id.desc(),
+    #     ])
+    #
+    # # # extracted meets per sync
+    # # from data.models.meets import Meet
+    # # meets = orm.relationship(Meet.__name__, backref='sync')
+    #
+    # not_synced_items: List[NotSyncedItem] = orm.relationship(
+    #     NotSyncedItem.__name__, back_populates='sync')

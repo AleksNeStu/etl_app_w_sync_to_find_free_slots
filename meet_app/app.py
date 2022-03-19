@@ -32,7 +32,7 @@ def main():
     configure()
 
     if not app.testing and not app.deploying:
-        app.run(debug=True, host='localhost')
+        app.run(debug=False, host='localhost')
 
 
 def configure():
