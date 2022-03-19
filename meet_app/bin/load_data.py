@@ -10,8 +10,9 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 import pandas as pd
+from progressbar import progressbar
+
 from data.models.syncs import Sync
-from dateutil import parser
 from enums.sa import SyncStatus, SyncEndReason
 from services import sync_service
 from utils import py as py_utils
@@ -28,7 +29,10 @@ import data.db_session as db_session
 req, resp, last_sync, actual_sync, errors, parsing_results = (
     None, None, None, None, [], {})
 
-
+#TODO: Add type hints
+#TODO: Consider avoid using global scope vars
+#TODO: Refactor module and extract based on responsibility parts
+#TODO: Add proper logging and errors, results collecting
 def run(forced=False):
     global last_sync, actual_sync, req, resp, errors, parsing_results
 
@@ -42,7 +46,21 @@ def run(forced=False):
         remote_data = get_remote_data(session, forced)
         if remote_data:
             # Parsing and storing to DB got data.
-            users_rows, meets_rows = extract_pandas_data_frames(remote_data)
+            df_users, df_meets = extract_pandas_data_frames(remote_data)
+
+            # Storing users data to DB.
+            # Not used pandas.DataFrame.to_sql approach which allows quickly
+            # complete the task even skip duplicates, but applied collecting
+            # all items more accurate, e.g. for future investigation purposes
+            # as well as make consistent solution with ORM models across whole
+            # project.
+            # engine = db_session.create_engine()
+            # df_users.to_sql('superstore', engine)
+            db_users_synced, db_not_synced_items_users = insert_users_df_to_db(
+                session, df_users, in_bulk=True)
+
+            # Storing meets data to DB.
+            # ...
 
             # Store parsing results.
             actual_sync_kwargs.update(**dict(
@@ -58,6 +76,104 @@ def run(forced=False):
     req, resp, last_sync, actual_sync, errors = None, None, None, None, []
 
     return sync
+
+
+def insert_users_df_to_db(session, df_users, in_bulk=False):
+    logging.info("Inserting users data to DB [in_bulk]={}...".format(in_bulk))
+
+    (df_users_unique, df_duplicated_data,
+     df_duplicated_none) = separate_users_df(df_users)
+
+    # if not in_bulk:
+    #     with progressbar.ProgressBar(max_value=len(users_data)) as bar:
+    #
+    #         for user_data_idx, (u_email, u_name) in enumerate(
+    #                 users_data.items(), start=1):
+    #             u = User(name=u_name, email=u_email)
+    #             session.add(u)
+    #             session.commit()
+    #             # sqlalchemy.orm.exc.DetachedInstanceError: Instance
+    #             # <User at 0x7f9f7b3caa40> is not bound to a Session; attribute
+    #             # refresh operation cannot proceed (Background on this error at:
+    #             # https://sqlalche.me/e/14/bhk3)
+    #             # inserted_users[u_email] = u
+    #             # fix:
+    #             # inserted_users = {u.email: u for u in session.query(User)}
+    #             bar.update(user_data_idx)
+    # else:
+    #     session.bulk_insert_mappings(
+    #         User, [dict(name=u_name, email=u_email)
+    #                for u_email, u_name in users_data.items()])
+    #     # session.add_all([User()])
+    #     session.commit()
+    #
+    # sys.stderr.flush()
+    # sys.stdout.flush()
+    #
+    # inserted_users = {u.email: u for u in session.query(User)}
+    # logging.info("Inserted {:,} users to DB".format(len(inserted_users)))
+    #
+    # return inserted_users
+    return None, None
+
+
+def separate_users_df(df_users):
+    # Unique user_id w/o rows w/ none like values
+    # TODO: Add cases to choose name from name and none values, like, for now
+    #  first is taken
+    # 320426673944415970493216791331086532677,Tami Black
+    # 320426673944415970493216791331086532677,nan
+    df_users_unique = df_users.drop_duplicates(
+        subset=['user_id'], keep='first').dropna(
+        subset=['user_id']).sort_values('user_name')  # 140
+
+    df_duplicates_all = df_users[df_users.duplicated(
+        subset=['user_id'], keep=False)].sort_values('user_name')  # 9
+
+    # 2) Duplicates (add to `not_synced_items` table)
+    # 160958802196100808578296561932835503894,Elizabeth Bravo
+    # 300760312550512860711662300860730112051,Edward Winfield
+    df_duplicated_data = df_duplicates_all[df_duplicates_all.duplicated(
+        subset=['user_id'], keep='first')].dropna().sort_values('user_name')  # 2
+
+    # Not duplicates (add to `user` table):
+    # 160958802196100808578296561932835503894,Elizabeth Bravo
+    # 300760312550512860711662300860730112051,Edward Winfield
+    # 320426673944415970493216791331086532677,Tami Black
+    df_not_duplicated = df_duplicates_all.drop_duplicates(
+        subset=['user_id'], keep='first').dropna().sort_values('user_name')  # 3
+
+    # None (add to `not_synced_items` table):
+    # 320426673944415970493216791331086532677,nan
+    # None,None
+    # None,None
+    # None,None
+    df_duplicated_none = df_duplicates_all[
+        df_duplicates_all.isnull().any(axis=1)].sort_values('user_name')  # 4
+
+    df_duplicates_all_count=len(df_duplicates_all.index) # 9
+    # 9 = 2 + 3 + 4
+    df_duplicated_data_count=len(df_duplicated_data.index) # 2
+    df_not_duplicated_count=len(df_not_duplicated.index) # 3
+    df_duplicated_none_count=len(df_duplicated_none.index) # 4
+
+    users_kwargs = dict(
+        users_duplicates_all_count=df_duplicates_all_count,
+        users_duplicated_data_count=df_duplicated_data_count,
+        users_not_duplicated_count=df_not_duplicated_count,
+        users_duplicated_none_count=df_duplicated_none_count,
+    )
+    parsing_results.update(users_kwargs)
+    df_duplicates_all_collected = pd.concat([
+        df_duplicated_data,
+        df_not_duplicated,
+        df_duplicated_none]).sort_values('user_name')
+    if not df_duplicates_all.reset_index(drop=True).equals(
+            df_duplicates_all_collected.reset_index(drop=True)):
+        raise (f'Pandas users dataframes analyzing error due to diff count '
+               f'of rows: {users_kwargs}')
+
+    return df_users_unique, df_duplicated_data, df_duplicated_none
 
 
 def extract_pandas_data_frames(remote_data):
@@ -105,19 +221,21 @@ def extract_pandas_data_frames(remote_data):
     df_users = df[df['c3'].isnull()].dropna(how='all', axis=1).copy()
     df_users = df_users.rename(columns={'c1': 'user_id', 'c2': 'user_name'})
 
-    total_rows=len(df.index) # 10224
-    meets_rows=len(df_meets.index) # 10078
-    users_rows=len(df_users.index) # 143
+    total_rows_count=len(df.index) # 10224
+    meets_rows_count=len(df_meets.index) # 10078
+    users_rows_count=len(df_users.index) # 146
 
     pandas_kwargs = dict(
-        total_rows=total_rows, meets_rows=meets_rows, users_rows=users_rows)
+        total_rows=total_rows_count,
+        meets_rows=meets_rows_count,
+        users_rows=users_rows_count)
 
-    if meets_rows + users_rows != total_rows:
-        raise (f'Pandas initical dataframes parsing error due to diff count '
+    if sum([meets_rows_count, users_rows_count]) != total_rows_count:
+        raise (f'Pandas initial dataframes parsing error due to diff count '
                f'of rows: {pandas_kwargs}')
     parsing_results.update(pandas_kwargs)
 
-    return users_rows, meets_rows
+    return df_users, df_meets
 
 def is_new_data_for_sync(session, forced):
     global last_sync, actual_sync, req, resp, errors
