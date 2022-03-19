@@ -29,7 +29,7 @@ req, resp, last_sync, actual_sync, errors, parsing_results = (
     None, None, None, None, [], {})
 
 
-def run():
+def run(forced=False):
     global last_sync, actual_sync, req, resp, errors, parsing_results
 
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -39,7 +39,7 @@ def run():
     sync = None
 
     with db_session.create_session() as session:
-        remote_data = get_remote_data(session)
+        remote_data = get_remote_data(session, forced)
         if remote_data:
             # Parsing and storing to DB got data.
             users_rows, meets_rows = extract_pandas_data_frames(remote_data)
@@ -80,7 +80,7 @@ def extract_pandas_data_frames(remote_data):
         header=None,
         names=['c1', 'c2', 'c3', 'c4'],
         # parse_dates=['c2', 'c3'], date_parser=dateparse,
-        skip_blank_lines=False,
+        skip_blank_lines=False, # to log not parsed lines to DB (even empty)
         engine='python')
 
     # df_meets
@@ -88,13 +88,13 @@ def extract_pandas_data_frames(remote_data):
     df_meets = df_meets.rename(
         columns={'c1': 'user_id', 'c2': 'meet_start_date',
                  'c3': 'meet_end_date', 'c4': 'meet_id'})
-    # Use preside datetime parsing to keep contaarct with remote data
+    # Use precise datetime parsing to keep contarct with remote data
 
     # Skip convertin datetime related columns to datetime, cause pandas in case
     # of all parsed rows is convertin type o column to datetime64 even
     # dateparse returns datetime. If try to convert datetime64 to datetime
     # using x.astype(datetime.datetime) return int instead of datetime.
-    # Additionaly issue with store d64 to datetime sa columns.
+    # Additionally issue with store d64 to datetime sa columns.
 
     # df_meets['meet_start_date'] = df_meets['meet_start_date'].apply(dateparse)
     # df_meets['meet_end_date'] = df_meets['meet_end_date'].apply(dateparse)
@@ -119,7 +119,7 @@ def extract_pandas_data_frames(remote_data):
 
     return users_rows, meets_rows
 
-def is_new_data_for_sync(session):
+def is_new_data_for_sync(session, forced):
     global last_sync, actual_sync, req, resp, errors
 
     req = Request(settings.SYNC_DATA_URL)
@@ -140,10 +140,11 @@ def is_new_data_for_sync(session):
         # Suppose to use API contract of AWS.
         # https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/
         # RequestAndResponseBehaviorS3Origin.html
-        last_sync_headers = json.loads(last_sync.resp_headers)
-        req.add_header('If-Match', last_sync_headers.get('ETag'))
-        req.add_header('If-Modified-Since',
-                       last_sync_headers.get('Last-Modified'))
+        if not forced:
+            last_sync_headers = json.loads(last_sync.resp_headers)
+            req.add_header('If-Match', last_sync_headers.get('ETag'))
+            req.add_header('If-Modified-Since',
+                           last_sync_headers.get('Last-Modified'))
         try:
             resp = urlopen(req)
             return True
@@ -182,10 +183,10 @@ def is_new_data_for_sync(session):
     return True
 
 
-def get_remote_data(session):
+def get_remote_data(session, forced):
     global last_sync, actual_sync, req, resp, errors
 
-    if is_new_data_for_sync(session):
+    if is_new_data_for_sync(session, forced):
         actual_sync_kwargs = {}
         try:
             resp = resp or urlopen(req)

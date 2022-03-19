@@ -116,13 +116,32 @@ settings.SYNC_INTERVAL value. All sync actions logged and stored to DB `Sync` ta
 
 
 2) There is a possibility to run sync manually via web handler: \
-http://localhost:5000/load_data
+http://localhost:5000/load_data - regular sync
+http://localhost:5000/load_data?forced=1 - forced sync
+ - Successfully finished sync response:
 ```JSON
 {
-    "end_date": "Tue, 08 Mar 2022 21:35:31 GMT",
+    "end_date": "Sat, 19 Mar 2022 13:12:43 GMT",
+    "end_reason": "data_parsing_end",
+    "errors": "[]",
+    "id": 169,
+    "parsing_results": "{\"total_rows\": 10224, \"meets_rows\": 10078, \"users_rows\": 146}",
+    "resp_headers": "{\"x-amz-id-2\": \"2crDIt2C3mXXYl5hXFFyZwFHtR3+IgByRRUwMzWXwM5oBJjjN9s+qTdWEHl26LrcKyqdNrlwrMw=\", \"x-amz-request-id\": \"4460MDDH9XRVSVDD\", \"Date\": \"Sat, 19 Mar 2022 12:12:40 GMT\", \"Last-Modified\": \"Fri, 30 Apr 2021 12:22:36 GMT\", \"ETag\": \"\\\"2d8a471d9e1614bead864637232427d4\\\"\", \"Content-Disposition\": \"attachment; filename=\\\"freebusy-1.0.0.txt\\\"\", \"Accept-Ranges\": \"bytes\", \"Content-Type\": \"application/octet-stream\", \"Server\": \"AmazonS3\", \"Content-Length\": \"3431097\", \"Connection\": \"close\"}",
+    "start_date": "Sat, 19 Mar 2022 13:12:38 GMT",
+    "status": "finished"
+}
+```
+
+- Skipped due to no new content sync response:
+```JSON
+{
+    "end_date": "Sat, 19 Mar 2022 13:15:37 GMT",
     "end_reason": "no_new_remote_data",
-    "id": 3,
-    "start_date": "Tue, 08 Mar 2022 21:35:31 GMT",
+    "errors": "[\"Error on try to load remote meet data: HTTP Error 304: Not Modified\"]",
+    "id": 171,
+    "parsing_results": "{}",
+    "resp_headers": "{\"x-amz-id-2\": \"NMv5ZsifxtypcrQsecznaW+ivuYkGhoxEW9ErbieQTUu2buvIff49qc1wxcnDRb1pjckW1P+E9U=\", \"x-amz-request-id\": \"RX5GVRJ8SBXM9D2W\", \"Date\": \"Sat, 19 Mar 2022 12:15:38 GMT\", \"Last-Modified\": \"Fri, 30 Apr 2021 12:22:36 GMT\", \"ETag\": \"\\\"2d8a471d9e1614bead864637232427d4\\\"\", \"Content-Disposition\": \"attachment; filename=\\\"freebusy-1.0.0.txt\\\"\", \"Server\": \"AmazonS3\", \"Connection\": \"close\"}",
+    "start_date": "Sat, 19 Mar 2022 13:15:36 GMT",
     "status": "skipped"
 }
 ```

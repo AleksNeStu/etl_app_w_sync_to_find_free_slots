@@ -5,8 +5,11 @@ import sys
 
 import flask
 import pytz
+import werkzeug
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+
+from infra.request_mod import request_data
 from services import sync_service
 
 import settings
@@ -15,6 +18,8 @@ from bin import run_migrations
 from data import db_session
 from infra.response_mod import response
 from migrations import utils as migrations_utils
+from utils import py as py_utils
+
 
 app = flask.Flask(__name__)
 app.deploying = bool(int(os.getenv('IS_DEPLOY', '0')))
@@ -94,11 +99,20 @@ def update_cfg():
     })
 
 # Sync data manually.
-@app.route('/load_data')
+# Example: http://localhost:5000/load_data?forced=1
+# Accepted 1, 0, True, False as values for forced
+# @app.route('/load_data/<int:forced>', methods=['GET']) - not flexible but quick
+@app.route('/load_data', methods=['GET'])
 @response()
+@app.errorhandler(werkzeug.exceptions.BadRequest)
 def load_meet_data():
-    sync = load_data.run()
-    # TODO: Add jsonify for parsing_results, errors
+    req_data = request_data(flask.request)
+
+    forced = py_utils.to_bool(req_data.forced) if req_data.forced else False
+    if forced is None:
+        return 'Bad request to load data', 400
+
+    sync = load_data.run(forced=forced)
     return flask.jsonify(sync)
 
 

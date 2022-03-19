@@ -127,3 +127,13 @@ def update_obj_attr_values(obj, obj_attrs_map, attr_names=None, is_db=True):
 
             # STR flow.
             setattr(obj, attr_name, attr_val)
+
+
+def to_bool(txt):
+    # 1, True, 0, False
+    try:
+        return bool(eval(txt))
+    except Exception:
+        pass
+
+    return

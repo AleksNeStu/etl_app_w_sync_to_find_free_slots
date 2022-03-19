@@ -18,7 +18,7 @@ class Sync(SqlAlchemyBase):
     end_date: datetime.datetime = sa.Column(
         sa.DateTime, index=True)
     status: str = sa.Column(sa.Enum(SyncStatus), nullable=False)
-    resp_headers = sa.Column(sa.JSON, default=json.dumps({}))
-    parsing_results = sa.Column(sa.JSON, default=json.dumps({}))
-    errors = sa.Column(sa.JSON, default=json.dumps([]))
+    resp_headers: str = sa.Column(sa.JSON, default=json.dumps({}))
+    parsing_results: str = sa.Column(sa.JSON, default=json.dumps({}))
+    errors: str = sa.Column(sa.JSON, default=json.dumps([]))
     end_reason: str = sa.Column(sa.Enum(SyncEndReason))
