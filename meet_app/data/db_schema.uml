@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>DATABASE</ID>
+  <OriginalElement>6d543538-4a35-4dc1-a016-b7e8ba4b966d.SCHEMA:main</OriginalElement>
+  <nodes>
+    <node x="63.0" y="373.0">6d543538-4a35-4dc1-a016-b7e8ba4b966d.TABLE:main.users</node>
+    <node x="402.2307692307692" y="330.0">6d543538-4a35-4dc1-a016-b7e8ba4b966d.TABLE:main.meets</node>
+    <node x="401.7307692307693" y="-17.0">6d543538-4a35-4dc1-a016-b7e8ba4b966d.TABLE:main.syncs</node>
+    <node x="111.0" y="103.0">6d543538-4a35-4dc1-a016-b7e8ba4b966d.TABLE:main.not_synced_items</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="6d543538-4a35-4dc1-a016-b7e8ba4b966d.TABLE:main.meets" target="6d543538-4a35-4dc1-a016-b7e8ba4b966d.TABLE:main.users" relationship="REFERENCES">
+      <point x="-55.25" y="-113.5" />
+      <point x="457.4807692307693" y="508.0" />
+      <point x="173.5" y="508.0" />
+      <point x="0.0" y="89.5" />
+    </edge>
+    <edge source="6d543538-4a35-4dc1-a016-b7e8ba4b966d.TABLE:main.meets" target="6d543538-4a35-4dc1-a016-b7e8ba4b966d.TABLE:main.syncs" relationship="REFERENCES">
+      <point x="55.25" y="-113.5" />
+      <point x="567.9807692307693" y="508.0" />
+      <point x="454.5" y="508.0" />
+      <point x="454.5" y="277.0" />
+      <point x="512.7307692307693" y="277.0" />
+      <point x="0.0" y="125.5" />
+    </edge>
+    <edge source="6d543538-4a35-4dc1-a016-b7e8ba4b966d.TABLE:main.users" target="6d543538-4a35-4dc1-a016-b7e8ba4b966d.TABLE:main.syncs" relationship="REFERENCES">
+      <point x="0.0" y="-89.5" />
+      <point x="173.5" y="277.0" />
+      <point x="512.7307692307693" y="277.0" />
+      <point x="0.0" y="125.5" />
+    </edge>
+    <edge source="6d543538-4a35-4dc1-a016-b7e8ba4b966d.TABLE:main.not_synced_items" target="6d543538-4a35-4dc1-a016-b7e8ba4b966d.TABLE:main.syncs" relationship="REFERENCES">
+      <point x="0.0" y="-65.5" />
+      <point x="212.5" y="141.0" />
+      <point x="512.7307692307693" y="141.0" />
+      <point x="0.0" y="125.5" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic" zoom="1.0" showDependencies="false" x="230.0" y="380.5" />
+  <SelectedNodes>
+    <node>6d543538-4a35-4dc1-a016-b7e8ba4b966d.TABLE:main.not_synced_items</node>
+  </SelectedNodes>
+  <Categories>
+    <Category>Columns</Category>
+    <Category>Comments</Category>
+    <Category>Key columns</Category>
+    <Category>Virtual foreign keys</Category>
+  </Categories>
+</Diagram>
+
