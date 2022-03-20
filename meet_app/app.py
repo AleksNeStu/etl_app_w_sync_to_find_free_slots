@@ -9,17 +9,15 @@ import werkzeug
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from infra.request_mod import request_data
-from services import sync_service
-
 import settings
 from bin import load_data
 from bin import run_migrations
 from data import db_session
+from infra.request_mod import request_data
 from infra.response_mod import response
 from migrations import utils as migrations_utils
+from services import sync_service
 from utils import py as py_utils
-
 
 app = flask.Flask(__name__)
 app.deploying = bool(int(os.getenv('IS_DEPLOY', '0')))
@@ -112,7 +110,9 @@ def load_meet_data():
     if forced is None:
         return 'Bad request to load data', 400
 
-    sync = load_data.run(forced=forced)
+    sync_id = load_data.run(forced=forced)
+    # Get actual sync status from DB based on sync id.
+    sync = sync_service.get_sync(get_kwargs={'id': sync_id})
     return flask.jsonify(sync)
 
 
