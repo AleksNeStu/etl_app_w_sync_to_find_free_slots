@@ -156,6 +156,8 @@ http://localhost:5000/load_data?forced=1 - forced sync
 }
 ```
 
+[Example of full load data resp](meet_app/data/json/load_data_resp.json)
+
 
 2) Dependencies \
 1.1) Run via docker containers:

@@ -10,14 +10,12 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 import pandas as pd
-from progressbar import progressbar
 
-from data.models.syncs import Sync
+from data.models.syncs import Sync, NotSyncedItem
 from data.models.users import User
-from enums.sa import SyncStatus, SyncEndReason
+from enums.sa import SyncStatus, SyncEndReason, NotSyncedItemReason
 from services import sync_service
 from utils import py as py_utils
-from utils import db as db_utils
 
 # add_module_to_sys_path
 directory = os.path.abspath(
@@ -42,6 +40,7 @@ def run(forced=False):
     logging.info("Load meet data to DB")
 
     actual_sync_kwargs = {}
+    sync = None
 
     with db_session.create_session() as session:
         remote_data = get_remote_data(session, forced)
@@ -72,10 +71,11 @@ def run(forced=False):
             py_utils.set_obj_attr_values(actual_sync, actual_sync_kwargs)
             session.commit()
 
+    sync = copy.deepcopy(actual_sync)
     # Set to None globals shares after each sync
     req, resp, last_sync, actual_sync, errors = None, None, None, None, []
 
-    return actual_sync.id
+    return sync
 
 
 def insert_users_df_to_db(session, df_users, in_bulk=False):
@@ -85,45 +85,22 @@ def insert_users_df_to_db(session, df_users, in_bulk=False):
     (df_users_unique, df_duplicated_data,
      df_duplicated_none) = aggregate_users_df(df_users)
 
-    # Inset new portion of unique users
+    # Inset new portion of unique users.
     sync_users = build_sync_users(session, df_users_unique)
     session.add_all(sync_users)
+
+    # Insert not synced users items (not checking previous syncs even for
+    # forced options), meaning every sync will produce adding probably
+    # duplications but provided info for investigations.
+    sync_users_duplicated_data_items = build_sync_not_synced_items(
+        df_duplicated_data, NotSyncedItemReason.duplicated_data.value)
+    session.add_all(sync_users_duplicated_data_items)
+    sync_users_duplicated_none_items = build_sync_not_synced_items(
+        df_duplicated_none, NotSyncedItemReason.duplicated_none.value)
+    session.add_all(sync_users_duplicated_none_items)
+
     session.commit()
 
-
-    # df_users_unique = db_utils.df_to_list_of_dicts(df_users_unique)
-    #
-    #
-    # if not in_bulk:
-    #     with progressbar.ProgressBar(max_value=len(users_data)) as bar:
-    #
-    #         for user_data_idx, (u_email, u_name) in enumerate(
-    #                 users_data.items(), start=1):
-    #             u = User(name=u_name, email=u_email)
-    #             session.add(u)
-    #             session.commit()
-    #             # sqlalchemy.orm.exc.DetachedInstanceError: Instance
-    #             # <User at 0x7f9f7b3caa40> is not bound to a Session; attribute
-    #             # refresh operation cannot proceed (Background on this error at:
-    #             # https://sqlalche.me/e/14/bhk3)
-    #             # inserted_users[u_email] = u
-    #             # fix:
-    #             # inserted_users = {u.email: u for u in session.query(User)}
-    #             bar.update(user_data_idx)
-    # else:
-    #     session.bulk_insert_mappings(
-    #         User, [dict(name=u_name, email=u_email)
-    #                for u_email, u_name in users_data.items()])
-    #     # session.add_all([User()])
-    #     session.commit()
-    #
-    # sys.stderr.flush()
-    # sys.stdout.flush()
-    #
-    # inserted_users = {u.email: u for u in session.query(User)}
-    # logging.info("Inserted {:,} users to DB".format(len(inserted_users)))
-    #
-    # return inserted_users
     return None, None
 
 
@@ -134,7 +111,7 @@ def build_sync_users(session, df_users):
     for user in df_users.itertuples():
         #TODO: Avoid sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError)
         # UNIQUE constraint failed: users.hash_id e.g. force sync with the same
-        # data
+        # data.
         u = User.as_unique(
             session=session,
             hash_id=user.user_id)
@@ -144,6 +121,16 @@ def build_sync_users(session, df_users):
 
     return users
 
+def build_sync_not_synced_items(df_not_synced, reason):
+    global actual_sync
+
+    return [
+        NotSyncedItem(
+            sync_id=actual_sync.id,
+            item_data=json.dumps(not_synced_dict),
+            reason=reason
+        )
+        for not_synced_dict in df_not_synced.to_dict('records')]
 
 def aggregate_users_df(df_users):
     # Unique user_id w/o rows w/ none like values
@@ -302,7 +289,9 @@ def is_new_data_for_sync(session, forced):
             actual_sync_kwargs.update(**dict(
                 end_date=datetime.datetime.now(),
                 resp_headers=dict(getattr(err, 'headers', {})),
-                errors=[error_msg]))
+                errors=[error_msg],
+                parsing_results={'sync_id': actual_sync.id}
+            ))
 
             # Skip due to not modified 304 status code (no new content)
             if type(err) == HTTPError and err.status == 304:
@@ -330,9 +319,10 @@ def is_new_data_for_sync(session, forced):
 
 
 def get_remote_data(session, forced):
-    global last_sync, actual_sync, req, resp, errors
+    global last_sync, actual_sync, req, resp, errors, parsing_results
 
     if is_new_data_for_sync(session, forced):
+        parsing_results.update({'sync_id': actual_sync.id})
         actual_sync_kwargs = {}
         try:
             resp = resp or urlopen(req)
@@ -356,7 +346,9 @@ def get_remote_data(session, forced):
             actual_sync_kwargs.update(**dict(
                 end_date=datetime.datetime.now(),
                 status=SyncStatus.errors,
-                end_reason=SyncEndReason.remote_server_errors))
+                end_reason=SyncEndReason.remote_server_errors,
+                parsing_results=parsing_results,
+            ))
             py_utils.set_obj_attr_values(actual_sync, actual_sync_kwargs)
             py_utils.update_obj_attr_values(
                 actual_sync, dict(errors=[error_msg]))
