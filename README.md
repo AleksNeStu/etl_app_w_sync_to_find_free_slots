@@ -233,5 +233,10 @@ a) [Fetch API of Chrome](https://jsonplaceholder.typicode.com/) e.g.:
 ## 4. Examples
 1) `syncs` table with examples:
 <p align="center">
-<img src="assets/sync-1.png" alt="`syncs` table with examples" width="100%">
+<img src="assets/syncs-db.png" alt="`syncs` table with examples" width="100%">
+</p>
+
+2) Result of sync response via web handler:
+<p align="center">
+<img src="assets/sync-web-resp.png" alt="Result of sync response via web handler" width="100%">
 </p>
