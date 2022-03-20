@@ -66,7 +66,10 @@ def run(forced=False):
                 session, df_users)
 
             # Storing meets data to DB.
-            # ...
+            db_meets_synced, db_not_synced_items_meets = insert_df_meets_to_db(
+                session, df_meets)
+
+            #TODO: Log results of DB inserting
 
             # Store parsing results.
             actual_sync_kwargs.update(**dict(
@@ -87,8 +90,8 @@ def run(forced=False):
 def insert_df_users_to_db(session, df_users):
     logging.info("Inserting users data to DB")
 
-    (df_users_unique, df_duplicated_data,
-     df_duplicated_none) = aggregate_users_df(df_users)
+    (df_users_unique, df_users_duplicated_data,
+     df_users_duplicated_none) = aggregate_users_df(df_users)
 
     # Inset new portion of unique users.
     sync_users = build_sync_users(session, df_users_unique)
@@ -98,10 +101,10 @@ def insert_df_users_to_db(session, df_users):
     # forced options), meaning every sync will produce adding probably
     # duplications but provided info for investigations.
     sync_users_duplicated_data_items = build_sync_not_synced_items(
-        df_duplicated_data, NotSyncedItemReason.duplicated_data.value)
+        df_users_duplicated_data, NotSyncedItemReason.duplicated_data.value)
     session.add_all(sync_users_duplicated_data_items)
     sync_users_duplicated_none_items = build_sync_not_synced_items(
-        df_duplicated_none, NotSyncedItemReason.duplicated_none.value)
+        df_users_duplicated_none, NotSyncedItemReason.duplicated_none.value)
     session.add_all(sync_users_duplicated_none_items)
 
     session.commit()
@@ -111,6 +114,35 @@ def insert_df_users_to_db(session, df_users):
     logging.info("Inserting users data to DB is finished.")
 
     return sync_users, db_not_synced_items_users
+
+def insert_df_meets_to_db(session, df_meets):
+    logging.info("Inserting user meets data to DB")
+
+    (df_meets_unique, df_meets_duplicated_data,
+     df_meets_duplicated_none) = aggregate_meets_df(df_meets)
+
+    # # Inset new portion of unique meets.
+    # sync_meets = build_sync_meets(session, df_meets_unique)
+    # session.add_all(sync_meets)
+    #
+    # # Insert not synced meets items (not checking previous syncs even for
+    # # forced options), meaning every sync will produce adding probably
+    # # duplications but provided info for investigations.
+    # sync_users_duplicated_data_items = build_sync_not_synced_items(
+    #     df_meets_duplicated_data, NotSyncedItemReason.duplicated_data.value)
+    # session.add_all(sync_users_duplicated_data_items)
+    # sync_users_duplicated_none_items = build_sync_not_synced_items(
+    #     df_meets_duplicated_none, NotSyncedItemReason.duplicated_none.value)
+    # session.add_all(sync_users_duplicated_none_items)
+    #
+    # session.commit()
+    #
+    # db_not_synced_items_meets = list(py_utils.flatten(
+    #     [sync_users_duplicated_data_items, sync_users_duplicated_none_items]))
+    # logging.info("Inserting meets data to DB is finished.")
+    #
+    # return sync_meets, db_not_synced_items_meets
+    return None, None
 
 
 def build_sync_users(session, df_users):
@@ -141,31 +173,32 @@ def build_sync_not_synced_items(df_not_synced, reason):
         )
         for not_synced_dict in df_not_synced.to_dict('records')]
 
+
 def aggregate_users_df(df_users):
-    # Unique user_id w/o rows w/ none like values
     # TODO: Add cases to choose name from name and none values, like, for now
     #  first is taken
     # 320426673944415970493216791331086532677,Tami Black
     # 320426673944415970493216791331086532677,nan
+    # user_id, user_name
+    dup_subset = ['user_id']
     df_users_unique = df_users.drop_duplicates(
-        subset=['user_id'], keep='first').dropna(
-        subset=['user_id']).sort_values('user_name')  # 140
+        subset=dup_subset, keep='first').dropna().sort_values('user_name')  # 140
 
     df_duplicates_all = df_users[df_users.duplicated(
-        subset=['user_id'], keep=False)].sort_values('user_name')  # 9
+        subset=dup_subset, keep=False)].sort_values('user_name')  # 9
 
-    # 2) Duplicates (add to `not_synced_items` table)
+    # Duplicates (add to `not_synced_items` table)
     # 160958802196100808578296561932835503894,Elizabeth Bravo
     # 300760312550512860711662300860730112051,Edward Winfield
     df_duplicated_data = df_duplicates_all[df_duplicates_all.duplicated(
-        subset=['user_id'], keep='first')].dropna().sort_values('user_name')  # 2
+        subset=dup_subset, keep='first')].dropna().sort_values('user_name')  # 2
 
     # Not duplicates (add to `user` table):
     # 160958802196100808578296561932835503894,Elizabeth Bravo
     # 300760312550512860711662300860730112051,Edward Winfield
     # 320426673944415970493216791331086532677,Tami Black
     df_not_duplicated = df_duplicates_all.drop_duplicates(
-        subset=['user_id'], keep='first').dropna().sort_values('user_name')  # 3
+        subset=dup_subset, keep='first').dropna().sort_values('user_name')  # 3
 
     # None (add to `not_synced_items` table):
     # 320426673944415970493216791331086532677,nan
@@ -198,6 +231,55 @@ def aggregate_users_df(df_users):
                f'of rows: {users_kwargs}')
 
     return df_users_unique, df_duplicated_data, df_duplicated_none
+
+
+def aggregate_meets_df(df_meets):
+    # user_id, meet_start_date. meet_end_date, meet_id
+    dup_subset = ['user_id', 'meet_start_date', 'meet_end_date']
+    df_meets_unique = df_meets.drop_duplicates(
+        subset=dup_subset,
+        keep='first').dropna().sort_values('meet_start_date') # 10078
+
+    df_duplicates_all = df_meets[df_meets.duplicated(
+        subset=dup_subset, keep=False)].sort_values('meet_start_date')  # 0
+
+    # Duplicates (add to `not_synced_items` table)
+    df_duplicated_data = df_duplicates_all[df_duplicates_all.duplicated(
+        subset=dup_subset,
+        keep='first')].dropna().sort_values('meet_start_date')  # 0
+
+    # Not duplicates (add to `meet` table):
+    df_not_duplicated = df_duplicates_all.drop_duplicates(
+        subset=dup_subset,
+        keep='first').dropna().sort_values('meet_start_date')  # 0
+
+    # None (add to `not_synced_items` table):
+    df_duplicated_none = df_duplicates_all[
+        df_duplicates_all.isnull().any(axis=1)].sort_values('meet_start_date')  # 0
+
+    df_duplicates_all_count=len(df_duplicates_all.index) # 9
+    # 9 = 2 + 3 + 4
+    df_duplicated_data_count=len(df_duplicated_data.index) # 2
+    df_not_duplicated_count=len(df_not_duplicated.index) # 3
+    df_duplicated_none_count=len(df_duplicated_none.index) # 4
+
+    meets_kwargs = dict(
+        meets_duplicates_all_count=df_duplicates_all_count,
+        meets_duplicated_data_count=df_duplicated_data_count,
+        meets_not_duplicated_count=df_not_duplicated_count,
+        meets_duplicated_none_count=df_duplicated_none_count,
+    )
+    parsing_results.update(meets_kwargs)
+    df_duplicates_all_collected = pd.concat([
+        df_duplicated_data,
+        df_not_duplicated,
+        df_duplicated_none]).sort_values('meet_start_date')
+    if not df_duplicates_all.reset_index(drop=True).equals(
+            df_duplicates_all_collected.reset_index(drop=True)):
+        raise (f'Pandas meets dataframes analyzing error due to diff count '
+               f'of rows: {meets_kwargs}')
+
+    return df_meets_unique, df_duplicated_data, df_duplicated_none
 
 
 def extract_pandas_data_frames(remote_data):
