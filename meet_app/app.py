@@ -8,6 +8,7 @@ import pytz
 import werkzeug
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from enums.sa import SyncStatus, SyncEndReason, NotSyncedItemReason, SyncType
 
 import settings
 from bin import load_data
@@ -71,7 +72,7 @@ def generate_all_db_models():
 
 def run_actions():
     # Sync data on application run.
-    sync = load_data.run()
+    sync = load_data.run(sync_type=SyncType.app_init.value, forced=False)
     scheduler.start()
 
 #TODO: Fix duplication of db entiries
@@ -79,7 +80,7 @@ def run_actions():
 @scheduler.scheduled_job(
     IntervalTrigger(timezone=pytz.utc, **settings.SYNC_INTERVAL))
 def load_data_job():
-    load_data.run()
+    load_data.run(sync_type=SyncType.scheduled.value)
 
 
 def init_logging():
@@ -110,7 +111,9 @@ def load_meet_data():
     if forced is None:
         return 'Bad request to load data', 400
 
-    sync = load_data.run(forced=forced)
+    sync_type = (
+        SyncType.manual_forced.value if forced else SyncType.manual.value)
+    sync = load_data.run(sync_type=sync_type, forced=forced)
     # Get actual sync status from DB based on sync id.
     actualised_sync = sync_service.get_sync(get_kwargs={'id': sync.id})
     return flask.jsonify(actualised_sync)

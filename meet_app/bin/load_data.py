@@ -37,7 +37,7 @@ req, resp, last_sync, actual_sync, errors, parsing_results = (
 #TODO: Add progressbar flow
 #TODO: Refactor module and extract based on responsibility parts
 #TODO: Add proper logging and errors, results collecting
-def run(forced=False):
+def run(sync_type, forced=False):
     """
     # Not used pandas.DataFrame.to_sql approach which allows quickly
     # complete the task even skip duplicates, but applied collecting
@@ -56,7 +56,7 @@ def run(forced=False):
     sync = None
 
     with db_session.create_session() as session:
-        remote_data = get_remote_data(session, forced)
+        remote_data = get_remote_data(session, forced, sync_type)
         if remote_data:
             # Parsing and storing to DB got data.
             df_users, df_meets = extract_pandas_data_frames(remote_data)
@@ -344,13 +344,14 @@ def extract_pandas_data_frames(remote_data):
 
     return df_users, df_meets
 
-def is_new_data_for_sync(session, forced):
+def is_new_data_for_sync(session, forced, sync_type):
     global last_sync, actual_sync, req, resp, errors
 
     req = Request(settings.SYNC_DATA_URL)
     actual_sync = Sync(
         start_date=datetime.datetime.now(),
-        status=SyncStatus.started
+        status=SyncStatus.started,
+        type=sync_type,
     )
 
     session.add(actual_sync)
@@ -410,11 +411,14 @@ def is_new_data_for_sync(session, forced):
     return True
 
 
-def get_remote_data(session, forced):
+def get_remote_data(session, forced, sync_type):
     global last_sync, actual_sync, req, resp, errors, parsing_results
 
-    if is_new_data_for_sync(session, forced):
-        parsing_results.update({'sync_id': actual_sync.id})
+    if is_new_data_for_sync(session, forced, sync_type):
+        parsing_results.update({
+            'sync_id': actual_sync.id,
+            'sync_type': sync_type,
+        })
         actual_sync_kwargs = {}
         try:
             resp = resp or urlopen(req)

@@ -7,7 +7,7 @@ import sqlalchemy as sa
 import sqlalchemy.orm as orm
 
 from data.models.modelbase import SqlAlchemyBase
-from enums.sa import SyncStatus, SyncEndReason, NotSyncedItemReason
+from enums.sa import SyncStatus, SyncEndReason, NotSyncedItemReason, SyncType
 
 
 @dataclass
@@ -35,7 +35,8 @@ class Sync(SqlAlchemyBase):
     resp_headers: str = sa.Column(sa.JSON, default=json.dumps({}))
     parsing_results: str = sa.Column(sa.JSON, default=json.dumps({}))
     errors: str = sa.Column(sa.JSON, default=json.dumps([]))
-    end_reason: str = sa.Column(sa.Enum(SyncEndReason))\
+    end_reason: str = sa.Column(sa.Enum(SyncEndReason))
+    type: str = sa.Column(sa.Enum(SyncType))
 
     # extracted users per sync
     from data.models.users import User

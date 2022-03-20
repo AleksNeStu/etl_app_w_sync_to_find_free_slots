@@ -18,6 +18,14 @@ class SyncEndReason(str, enum.Enum):
     data_parsing_errors: str = 'data_parsing_errors'
     data_parsing_end: str = 'data_parsing_end'
 
+@enum.unique
+class SyncType(str, enum.Enum):
+    app_init: str = 'app_init'
+    scheduled: str = 'scheduled'
+    manual: str = 'manual'
+    forced: str = 'forced'
+    manual_forced: str = 'manual_forced'
+
 
 @enum.unique
 class NotSyncedItemReason(str, enum.Enum):
