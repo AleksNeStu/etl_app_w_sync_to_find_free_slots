@@ -215,3 +215,26 @@ http://localhost:5000/load_data?forced=1 - forced sync
 <p align="center">
 <img src="assets/sync-web-resp.png" alt="Result of sync response via web handler" width="100%">
 </p>
+
+2. Not synced items table:
+
+
+| reason | id | sync\_id | item\_data |
+| :--- | :--- | :--- | :--- |
+| duplicated\_data | 1 | 1 | "{\\"user\_id\\": \\"300760312550512860711662300860730112051\\", \\"user\_name\\": \\"Edward Winfield\\"}" |
+| duplicated\_data | 2 | 1 | "{\\"user\_id\\": \\"160958802196100808578296561932835503894\\", \\"user\_name\\": \\"Elizabeth Bravo\\"}" |
+| duplicated\_none | 3 | 1 | "{\\"user\_id\\": null, \\"user\_name\\": null}" |
+| duplicated\_none | 4 | 1 | "{\\"user\_id\\": null, \\"user\_name\\": null}" |
+| duplicated\_none | 5 | 1 | "{\\"user\_id\\": \\"320426673944415970493216791331086532677\\", \\"user\_name\\": NaN}" |
+| duplicated\_none | 6 | 1 | "{\\"user\_id\\": null, \\"user\_name\\": null}" |
+| not\_recognized\_data | 7 | 1 | "{\\"user\_id\\": \\"122738134777317151430937745278085616415\\", \\"meet\_start\_date\\": \\"1/1/2015 12:00:0\\", \\"meet\_end\_date\\": \\"1/1/2015 12:00:00 AM\\", \\"meet\_id\\": \\"05BD3C3EDC63D66D4A08A02E8C06A991566A81F9ECF1CD5D872291BFA7F38C8B651CD61CF3EC01684263F3BE743A7F5016F3B513C72AB42054B7D6588C3EE80B7596622E4F4E531AC6DE8003FDEAEFFF69202F17C0884CADE0075F013CEA5BDFB374CEB2E08B7F8DCD8E816C0B1B8D9DAFDCAE624AA7833EBA8B6BB2166118FF\\", \\"Index\\": 9720.0}" |
+| not\_recognized\_data | 8 | 1 | "{\\"user\_id\\": \\"132170847144391420901310654714918986833\\", \\"meet\_start\_date\\": \\"1/1/2015 2:00:00 PM\\", \\"meet\_end\_date\\": \\"1/1/2015 9:00:00 AM\\", \\"meet\_id\\": \\"2E778D76EA0017CF8A9E9397AA2E232C9BCCBCA6DA1948B7B8956C33B4BC281CC5D5F1FC53FA551B3E17AD07B2355B5C25A3A329EB74E5295E3ACE954D98F52DD730757AE6872AC3C080E89A9E0533D508C904A9541EEAFCA85BAC6F06691E85B4F90C6833786A281B6BC4EE3497F2882AB678EEC0D0325A20A4B3B85411DD21\\", \\"Index\\": 7061.0}" |
+| duplicated\_data | 9 | 2 | "{\\"user\_id\\": \\"300760312550512860711662300860730112051\\", \\"user\_name\\": \\"Edward Winfield\\"}" |
+| duplicated\_data | 10 | 2 | "{\\"user\_id\\": \\"160958802196100808578296561932835503894\\", \\"user\_name\\": \\"Elizabeth Bravo\\"}" |
+| duplicated\_none | 11 | 2 | "{\\"user\_id\\": null, \\"user\_name\\": null}" |
+| duplicated\_none | 12 | 2 | "{\\"user\_id\\": null, \\"user\_name\\": null}" |
+| duplicated\_none | 13 | 2 | "{\\"user\_id\\": \\"320426673944415970493216791331086532677\\", \\"user\_name\\": NaN}" |
+| duplicated\_none | 14 | 2 | "{\\"user\_id\\": null, \\"user\_name\\": null}" |
+| not\_recognized\_data | 15 | 2 | "{\\"user\_id\\": \\"122738134777317151430937745278085616415\\", \\"meet\_start\_date\\": \\"1/1/2015 12:00:0\\", \\"meet\_end\_date\\": \\"1/1/2015 12:00:00 AM\\", \\"meet\_id\\": \\"05BD3C3EDC63D66D4A08A02E8C06A991566A81F9ECF1CD5D872291BFA7F38C8B651CD61CF3EC01684263F3BE743A7F5016F3B513C72AB42054B7D6588C3EE80B7596622E4F4E531AC6DE8003FDEAEFFF69202F17C0884CADE0075F013CEA5BDFB374CEB2E08B7F8DCD8E816C0B1B8D9DAFDCAE624AA7833EBA8B6BB2166118FF\\", \\"Index\\": 9720.0}" |
+| not\_recognized\_data | 16 | 2 | "{\\"user\_id\\": \\"132170847144391420901310654714918986833\\", \\"meet\_start\_date\\": \\"1/1/2015 2:00:00 PM\\", \\"meet\_end\_date\\": \\"1/1/2015 9:00:00 AM\\", \\"meet\_id\\": \\"2E778D76EA0017CF8A9E9397AA2E232C9BCCBCA6DA1948B7B8956C33B4BC281CC5D5F1FC53FA551B3E17AD07B2355B5C25A3A329EB74E5295E3ACE954D98F52DD730757AE6872AC3C080E89A9E0533D508C904A9541EEAFCA85BAC6F06691E85B4F90C6833786A281B6BC4EE3497F2882AB678EEC0D0325A20A4B3B85411DD21\\", \\"Index\\": 7061.0}" |
+
