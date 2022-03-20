@@ -9,7 +9,7 @@ import sqlalchemy.orm as orm
 from data.models.modelbase import SqlAlchemyBase
 from enums.sa import SyncStatus, SyncEndReason, NotSyncedItemReason, SyncType
 
-
+#TODO: Add created_date, updated_date and logic to app
 @dataclass
 class NotSyncedItem(SqlAlchemyBase):
     __tablename__ = 'not_synced_items'
@@ -47,6 +47,13 @@ class Sync(SqlAlchemyBase):
         ])
 
     # extracted meets per sync
+    from data.models.meets import Meet
+    meets: List[Meet] = orm.relationship(
+        Meet.__name__, back_populates='sync', order_by=[
+            Meet.meet_start_date.desc(), Meet.meet_end_date.desc(),
+        ])
+
+    # not synced items (users and meets) per sync
     # from data.models.meets import Meet
     # meets = orm.relationship(Meet.__name__, backref='sync')
     not_synced_items: List[NotSyncedItem] = orm.relationship(
