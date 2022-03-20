@@ -10,8 +10,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 import pandas as pd
-import pytz
-from dateutil import parser
+from codetiming import Timer
 
 from data.models.meets import Meet
 from data.models.syncs import Sync, NotSyncedItem
@@ -41,6 +40,7 @@ req, resp, last_sync, actual_sync, errors, parsing_results = (
 #TODO: Add progressbar flow and time repr
 #TODO: Refactor module and extract based on responsibility parts
 #TODO: Add proper logging and errors, results collecting
+@Timer(text=f"Time consumption for {'run'}: {{:.3f}}")
 def run(sync_type, forced=False):
     """
     # Not used pandas.DataFrame.to_sql approach which allows quickly
@@ -91,6 +91,7 @@ def run(sync_type, forced=False):
     return sync
 
 
+@Timer(text=f"Time consumption for {'insert_df_users_to_db'}: {{:.3f}}")
 def insert_df_users_to_db(session, df_users):
     logging.info("Inserting users data to DB")
 
@@ -118,6 +119,8 @@ def insert_df_users_to_db(session, df_users):
 
     return sync_users, db_not_synced_items_users
 
+
+@Timer(text=f"Time consumption for {'insert_df_meets_to_db'}: {{:.3f}}")
 def insert_df_meets_to_db(session, df_meets):
     logging.info("Inserting user meets data to DB")
 
@@ -153,6 +156,7 @@ def insert_df_meets_to_db(session, df_meets):
     return sync_meets, db_not_synced_items_meets
 
 
+@Timer(text=f"Time consumption for {'build_sync_users'}: {{:.3f}}")
 def build_sync_users(session, df_users):
     global actual_sync
     users = []
@@ -168,6 +172,7 @@ def build_sync_users(session, df_users):
     return users
 
 
+@Timer(text=f"Time consumption for {'build_sync_meets'}: {{:.3f}}")
 def build_sync_meets(session, df_meets):
     global actual_sync
     meets = []
@@ -182,7 +187,28 @@ def build_sync_meets(session, df_meets):
         db_meet_user = user_service.get_user_hash_id(
             user_hash_id=df_meet.user_id, users_qr=db_users_qr)
         if not db_meet_user:
-            df_meets_not_recognized_data.append(df_meet)
+            df_meets_not_recognized_data.append(pd.DataFrame([df_meet]))
+            continue
+
+        # Dates converting from str to datetime object (UTC time zone)
+        try:
+            # Decided to use exact datetime parsing instead of:
+            # import pytz
+            # parser.parse(df_meet.meet_start_date).astimezone(pytz.utc) to
+            # avoid issue and data inconsistency e.g.
+            # '1/1/2015 12:00:0' will be interpreted by parser.parse as
+            # datetime(`2015-01-01 11:00:00+00:00`) as well as utc time zone
+            # conversion is no saved here.
+            start_date = py_utils.parse_datetime(df_meet.meet_start_date)
+            end_date = py_utils.parse_datetime(df_meet.meet_end_date)
+            # No meet or start datetime more than end datetime.
+            if not start_date or not end_date or start_date >= end_date:
+                df_meets_not_recognized_data.append(pd.DataFrame([df_meet]))
+                continue
+
+        except Exception:
+            # Not parsable data to datetime.
+            df_meets_not_recognized_data.append(pd.DataFrame([df_meet]))
             continue
 
         meet = Meet.as_unique(
@@ -190,21 +216,13 @@ def build_sync_meets(session, df_meets):
             hash_id=df_meet.meet_id)
         meet.sync_id = actual_sync.id
         meet.user_id = db_meet_user.id
-
-        # Dates converting from str to datetime object (UTC time zone)
-        try:
-            start_date = parser.parse(
-                df_meet.meet_start_date).astimezone(pytz.utc)
-            end_date = parser.parse(
-                df_meet.meet_end_date).astimezone(pytz.utc)
-            meet.start_date = start_date
-            meet.end_date = end_date
-        except Exception:
-            df_meets_not_recognized_data.append(df_meet)
-            continue
+        meet.start_date = start_date
+        meet.end_date = end_date
 
         meets.append(meet)
 
+    # TypeError: cannot concatenate object of type
+    # '<class 'pandas.core.frame.Pandas'>'; only Series and DataFrame objs are valid
     df_meets_not_recognized_data = pd.concat(df_meets_not_recognized_data)
     parsing_results.update({
         'meets_not_recognized_count': len(df_meets_not_recognized_data.index)
@@ -213,6 +231,7 @@ def build_sync_meets(session, df_meets):
     return meets, df_meets_not_recognized_data
 
 
+@Timer(text=f"Time consumption for {'build_sync_not_synced_items'}: {{:.3f}}")
 def build_sync_not_synced_items(df_not_synced, reason):
     global actual_sync
 
@@ -225,6 +244,7 @@ def build_sync_not_synced_items(df_not_synced, reason):
         for not_synced_dict in df_not_synced.to_dict('records')]
 
 
+@Timer(text=f"Time consumption for {'aggregate_users_df'}: {{:.3f}}")
 def aggregate_users_df(df_users):
     # TODO: Add cases to choose name from name and none values, like, for now
     #  first is taken
@@ -284,6 +304,7 @@ def aggregate_users_df(df_users):
     return df_users_unique, df_duplicated_data, df_duplicated_none
 
 
+@Timer(text=f"Time consumption for {'aggregate_meets_df'}: {{:.3f}}")
 def aggregate_meets_df(df_meets):
     # user_id, meet_start_date, meet_end_date, meet_id
     dup_subset = ['user_id', 'meet_start_date', 'meet_end_date']
@@ -333,6 +354,7 @@ def aggregate_meets_df(df_meets):
     return df_meets_unique, df_duplicated_data, df_duplicated_none
 
 
+@Timer(text=f"Time consumption for {'extract_pandas_data_frames'}: {{:.3f}}")
 def extract_pandas_data_frames(remote_data):
     """
     Skip convertin datetime related columns to datetime, cause pandas in case
@@ -352,13 +374,6 @@ def extract_pandas_data_frames(remote_data):
     io_data = StringIO(str(remote_data, 'utf-8'))
     # pd.to_datetime(t, format=form)
     # datetime_object = datetime.strptime(t, form)
-
-    def dateparse(entry):
-        try:
-            return datetime.datetime.strptime(entry, settings.DATA_TIME_FORMAT)
-        except Exception as err:
-            pass
-        return entry
 
     df = pd.read_csv(
         io_data,
@@ -394,6 +409,7 @@ def extract_pandas_data_frames(remote_data):
     parsing_results.update(pandas_kwargs)
 
     return df_users, df_meets
+
 
 def is_new_data_for_sync(session, forced, sync_type):
     global last_sync, actual_sync, req, resp, errors
@@ -462,6 +478,7 @@ def is_new_data_for_sync(session, forced, sync_type):
     return True
 
 
+@Timer(text=f"Time consumption for {'get_remote_data'}: {{:.3f}}")
 def get_remote_data(session, forced, sync_type):
     global last_sync, actual_sync, req, resp, errors, parsing_results
 
