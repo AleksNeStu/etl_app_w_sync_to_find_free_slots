@@ -51,6 +51,18 @@ python-versions = ">=3.6"
 colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
+name = "codetiming"
+version = "1.3.0"
+description = "A flexible, customizable timer for your Python code"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.extras]
+dev = ["black", "bump2version", "flake8", "flit", "interrogate", "isort", "mypy"]
+test = ["black", "interrogate", "pytest", "pytest-cov", "tox"]
+
+[[package]]
 name = "colorama"
 version = "0.4.4"
 description = "Cross-platform colored terminal text."
@@ -364,7 +376,7 @@ watchdog = ["watchdog"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "8d795bd7a4eca8dc0be2594a52d72aa1b8c388238c8e7bd648a6c8fd60496d53"
+content-hash = "4b4bbd50931f537676fb02fd05ff600281efefc3a58fe09a43c575ab9ad7dbb0"
 
 [metadata.files]
 alembic = [
@@ -378,6 +390,10 @@ apscheduler = [
 click = [
     {file = "click-8.0.4-py3-none-any.whl", hash = "sha256:6a7a62563bbfabfda3a38f3023a1db4a35978c0abd76f6c9605ecd6554d6d9b1"},
     {file = "click-8.0.4.tar.gz", hash = "sha256:8458d7b1287c5fb128c90e23381cf99dcde74beaf6c7ff6384ce84d6fe090adb"},
+]
+codetiming = [
+    {file = "codetiming-1.3.0-py3-none-any.whl", hash = "sha256:1d7daa7f13354371cdd54999a5064350f7c551fe1a6b7e870eea9fce3abb2c09"},
+    {file = "codetiming-1.3.0.tar.gz", hash = "sha256:7f9949dad6438f458a22b811b0738c55e45f685d27551352871e15811f3a5e89"},
 ]
 colorama = [
     {file = "colorama-0.4.4-py2.py3-none-any.whl", hash = "sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2"},
