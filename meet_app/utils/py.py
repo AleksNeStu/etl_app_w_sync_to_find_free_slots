@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 import sys
@@ -5,6 +6,8 @@ from importlib import import_module
 from inspect import isclass
 from pkgutil import iter_modules
 from typing import Iterable
+
+import settings
 
 
 class DictToObj(dict):
@@ -149,3 +152,13 @@ def flatten(items):
                 yield sub_x
         else:
             yield x
+
+
+def parse_datetime(date_string, format=settings.DATA_TIME_FORMAT):
+        try:
+            parsed_date = datetime.datetime.strptime(date_string, format)
+            # Based on task agreement all data in UTC time zone.
+            return parsed_date.replace(tzinfo=datetime.timezone.utc)
+
+        except Exception:
+            return

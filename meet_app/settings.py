@@ -89,4 +89,6 @@ SYNC_INTERVAL = dict(weeks=0, days=0, hours=0, minutes=30, seconds=0)
 
 # Parsing
 # e.g. '3/13/2015 2:00:00 PM'
-DATA_TIME_FORMAT = '%m/%d/%Y %H:%M:%S %p'
+# %I - hour, using a 12-hour clock (01 to 12)
+# https://docs.python.org/3/library/datetime.html
+DATA_TIME_FORMAT = '%m/%d/%Y %I:%M:%S %p'
