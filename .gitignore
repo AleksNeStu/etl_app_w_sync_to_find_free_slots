@@ -143,3 +143,4 @@ supervisord.*
 #db
 generated_all_db_models.py
 flask.env.sec.me
+temp
