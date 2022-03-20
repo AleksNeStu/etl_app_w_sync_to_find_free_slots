@@ -110,10 +110,10 @@ def load_meet_data():
     if forced is None:
         return 'Bad request to load data', 400
 
-    sync_id = load_data.run(forced=forced)
+    sync = load_data.run(forced=forced)
     # Get actual sync status from DB based on sync id.
-    sync = sync_service.get_sync(get_kwargs={'id': sync_id})
-    return flask.jsonify(sync)
+    actualised_sync = sync_service.get_sync(get_kwargs={'id': sync.id})
+    return flask.jsonify(actualised_sync)
 
 
 if __name__ in ('__main__', 'meet_app.app'):
