@@ -71,7 +71,7 @@ https://builds.lundalogik.com/api/v1/builds/freebusy/versions/1.0.0/file
 
 ## 2. Output
 
-### 2.1 Interpretation
+### 2.1 Interpretation (!!!DEPRECATED!!!) - REDO AFTER FINISH!!!
 
 0) Suppose UTC time zone everywhere across the app.
 
