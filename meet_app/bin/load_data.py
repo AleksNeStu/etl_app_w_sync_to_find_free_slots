@@ -10,11 +10,14 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 import pandas as pd
+import pytz
+from dateutil import parser
 
+from data.models.meets import Meet
 from data.models.syncs import Sync, NotSyncedItem
 from data.models.users import User
 from enums.sa import SyncStatus, SyncEndReason, NotSyncedItemReason
-from services import sync_service
+from services import sync_service, user_service
 from utils import py as py_utils
 
 # add_module_to_sys_path
@@ -29,12 +32,13 @@ import data.db_session as db_session
 req, resp, last_sync, actual_sync, errors, parsing_results = (
     None, None, None, None, [], {})
 
+#TODO: Add memcache mechanisms
 #TODO: Consider cases when hashes for users and meets are not consinstent
 # from 3rd party server (need to assign internal checks using utils.db.to_hash
 # or more simple md5)
 #TODO: Add type hints
 #TODO: Consider avoid using global scope vars
-#TODO: Add progressbar flow
+#TODO: Add progressbar flow and time repr
 #TODO: Refactor module and extract based on responsibility parts
 #TODO: Add proper logging and errors, results collecting
 def run(sync_type, forced=False):
@@ -102,15 +106,14 @@ def insert_df_users_to_db(session, df_users):
     # duplications but provided info for investigations.
     sync_users_duplicated_data_items = build_sync_not_synced_items(
         df_users_duplicated_data, NotSyncedItemReason.duplicated_data.value)
-    session.add_all(sync_users_duplicated_data_items)
     sync_users_duplicated_none_items = build_sync_not_synced_items(
         df_users_duplicated_none, NotSyncedItemReason.duplicated_none.value)
-    session.add_all(sync_users_duplicated_none_items)
-
-    session.commit()
 
     db_not_synced_items_users = list(py_utils.flatten(
         [sync_users_duplicated_data_items, sync_users_duplicated_none_items]))
+    session.add_all(db_not_synced_items_users)
+    session.commit()
+
     logging.info("Inserting users data to DB is finished.")
 
     return sync_users, db_not_synced_items_users
@@ -121,46 +124,94 @@ def insert_df_meets_to_db(session, df_meets):
     (df_meets_unique, df_meets_duplicated_data,
      df_meets_duplicated_none) = aggregate_meets_df(df_meets)
 
-    # # Inset new portion of unique meets.
-    # sync_meets = build_sync_meets(session, df_meets_unique)
-    # session.add_all(sync_meets)
-    #
-    # # Insert not synced meets items (not checking previous syncs even for
-    # # forced options), meaning every sync will produce adding probably
-    # # duplications but provided info for investigations.
-    # sync_users_duplicated_data_items = build_sync_not_synced_items(
-    #     df_meets_duplicated_data, NotSyncedItemReason.duplicated_data.value)
-    # session.add_all(sync_users_duplicated_data_items)
-    # sync_users_duplicated_none_items = build_sync_not_synced_items(
-    #     df_meets_duplicated_none, NotSyncedItemReason.duplicated_none.value)
-    # session.add_all(sync_users_duplicated_none_items)
-    #
-    # session.commit()
-    #
-    # db_not_synced_items_meets = list(py_utils.flatten(
-    #     [sync_users_duplicated_data_items, sync_users_duplicated_none_items]))
-    # logging.info("Inserting meets data to DB is finished.")
-    #
-    # return sync_meets, db_not_synced_items_meets
-    return None, None
+    # Inset new portion of unique meets.
+    sync_meets, df_meets_not_recognized_data = build_sync_meets(
+        session, df_meets_unique)
+
+    session.add_all(sync_meets)
+
+    # Insert not synced meets items (not checking previous syncs even for
+    # forced options), meaning every sync will produce adding probably
+    # duplications but provided info for investigations.
+    sync_meets_duplicated_data_items = build_sync_not_synced_items(
+        df_meets_duplicated_data, NotSyncedItemReason.duplicated_data.value)
+    sync_meets_duplicated_none_items = build_sync_not_synced_items(
+        df_meets_duplicated_none, NotSyncedItemReason.duplicated_none.value)
+    sync_meets_not_recognized_data = build_sync_not_synced_items(
+        df_meets_not_recognized_data,
+        NotSyncedItemReason.not_recognized_data.value)
+
+    db_not_synced_items_meets = list(py_utils.flatten(
+        [sync_meets_duplicated_data_items,
+         sync_meets_duplicated_none_items,
+         sync_meets_not_recognized_data]))
+    session.add_all(db_not_synced_items_meets)
+    session.commit()
+
+    logging.info("Inserting meets data to DB is finished.")
+
+    return sync_meets, db_not_synced_items_meets
 
 
 def build_sync_users(session, df_users):
     global actual_sync
     users = []
     # df_users_unique_kwargs = df_users.to_dict('records')
-    for user in df_users.itertuples():
-        #TODO: Avoid sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError)
-        # UNIQUE constraint failed: users.hash_id e.g. force sync with the same
-        # data.
-        u = User.as_unique(
+    for df_user in df_users.itertuples():
+        user = User.as_unique(
             session=session,
-            hash_id=user.user_id)
-        u.name = user.user_name
-        u.sync_id = actual_sync.id
-        users.append(u)
+            hash_id=df_user.user_id)
+        user.sync_id = actual_sync.id
+        user.name = df_user.user_name
+        users.append(user)
 
     return users
+
+
+def build_sync_meets(session, df_meets):
+    global actual_sync
+    meets = []
+
+    empty_df_meet = pd.DataFrame(
+        columns=['user_id','meet_start_date','meet_end_date','meet_id'])
+    df_meets_not_recognized_data = [empty_df_meet]
+    db_users_qr = user_service.get_users_qr(session)
+
+    for df_meet in df_meets.itertuples():
+        # Try to get user from DB based on meets df data.
+        db_meet_user = user_service.get_user_hash_id(
+            user_hash_id=df_meet.user_id, users_qr=db_users_qr)
+        if not db_meet_user:
+            df_meets_not_recognized_data.append(df_meet)
+            continue
+
+        meet = Meet.as_unique(
+            session=session,
+            hash_id=df_meet.meet_id)
+        meet.sync_id = actual_sync.id
+        meet.user_id = db_meet_user.id
+
+        # Dates converting from str to datetime object (UTC time zone)
+        try:
+            start_date = parser.parse(
+                df_meet.meet_start_date).astimezone(pytz.utc)
+            end_date = parser.parse(
+                df_meet.meet_end_date).astimezone(pytz.utc)
+            meet.start_date = start_date
+            meet.end_date = end_date
+        except Exception:
+            df_meets_not_recognized_data.append(df_meet)
+            continue
+
+        meets.append(meet)
+
+    df_meets_not_recognized_data = pd.concat(df_meets_not_recognized_data)
+    parsing_results.update({
+        'meets_not_recognized_count': len(df_meets_not_recognized_data.index)
+    })
+
+    return meets, df_meets_not_recognized_data
+
 
 def build_sync_not_synced_items(df_not_synced, reason):
     global actual_sync
@@ -234,7 +285,7 @@ def aggregate_users_df(df_users):
 
 
 def aggregate_meets_df(df_meets):
-    # user_id, meet_start_date. meet_end_date, meet_id
+    # user_id, meet_start_date, meet_end_date, meet_id
     dup_subset = ['user_id', 'meet_start_date', 'meet_end_date']
     df_meets_unique = df_meets.drop_duplicates(
         subset=dup_subset,
@@ -257,11 +308,11 @@ def aggregate_meets_df(df_meets):
     df_duplicated_none = df_duplicates_all[
         df_duplicates_all.isnull().any(axis=1)].sort_values('meet_start_date')  # 0
 
-    df_duplicates_all_count=len(df_duplicates_all.index) # 9
-    # 9 = 2 + 3 + 4
-    df_duplicated_data_count=len(df_duplicated_data.index) # 2
-    df_not_duplicated_count=len(df_not_duplicated.index) # 3
-    df_duplicated_none_count=len(df_duplicated_none.index) # 4
+    df_duplicates_all_count=len(df_duplicates_all.index) # 0
+    # 0 = 0 + 0 + 0
+    df_duplicated_data_count=len(df_duplicated_data.index) # 0
+    df_not_duplicated_count=len(df_not_duplicated.index) # 0
+    df_duplicated_none_count=len(df_duplicated_none.index) # 0
 
     meets_kwargs = dict(
         meets_duplicates_all_count=df_duplicates_all_count,

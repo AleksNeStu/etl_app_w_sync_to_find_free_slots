@@ -31,4 +31,5 @@ class SyncType(str, enum.Enum):
 class NotSyncedItemReason(str, enum.Enum):
     duplicated_data: str = 'duplicated_data'
     duplicated_none: str = 'duplicated_none'
+    # e.g. meet items has user id which is not in users table for some reasons
     not_recognized_data: str = 'not_recognized_data'

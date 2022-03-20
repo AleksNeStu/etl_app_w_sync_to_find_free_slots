@@ -115,8 +115,8 @@ def load_meet_data():
         SyncType.manual_forced.value if forced else SyncType.manual.value)
     sync = load_data.run(sync_type=sync_type, forced=forced)
     # Get actual sync status from DB based on sync id.
-    actualised_sync = sync_service.get_sync(get_kwargs={'id': sync.id})
-    return flask.jsonify(actualised_sync)
+    db_actual_sync = sync_service.get_sync(get_kwargs={'id': sync.id})
+    return flask.jsonify(db_actual_sync)
 
 
 if __name__ in ('__main__', 'meet_app.app'):

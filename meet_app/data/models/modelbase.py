@@ -34,6 +34,7 @@ def _unique(session, cls, hashfunc, queryfunc, constructor, arg, kw):
         return obj
 
 
+# Avoid sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed
 class UniqueMixin(object):
     @classmethod
     def unique_hash(cls, *arg, **kw):

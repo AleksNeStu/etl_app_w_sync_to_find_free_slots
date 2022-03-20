@@ -56,7 +56,7 @@ def init_sql(conn):
     # debug sql queries
     # logger = logging.getLogger('sqlalchemy.engine')
     # logger.setLevel(logging.DEBUG)
-    engine = sa.create_engine(conn, echo=True)
+    engine = sa.create_engine(conn, echo=False)
 
     db_url = engine.url
     logging.info(
