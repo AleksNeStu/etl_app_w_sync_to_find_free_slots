@@ -13,9 +13,11 @@ import pandas as pd
 from progressbar import progressbar
 
 from data.models.syncs import Sync
+from data.models.users import User
 from enums.sa import SyncStatus, SyncEndReason
 from services import sync_service
 from utils import py as py_utils
+from utils import db as db_utils
 
 # add_module_to_sys_path
 directory = os.path.abspath(
@@ -40,7 +42,6 @@ def run(forced=False):
     logging.info("Load meet data to DB")
 
     actual_sync_kwargs = {}
-    sync = None
 
     with db_session.create_session() as session:
         remote_data = get_remote_data(session, forced)
@@ -71,19 +72,28 @@ def run(forced=False):
             py_utils.set_obj_attr_values(actual_sync, actual_sync_kwargs)
             session.commit()
 
-    sync = copy.deepcopy(actual_sync)
     # Set to None globals shares after each sync
     req, resp, last_sync, actual_sync, errors = None, None, None, None, []
 
-    return sync
+    return actual_sync.id
 
 
 def insert_users_df_to_db(session, df_users, in_bulk=False):
+    
     logging.info("Inserting users data to DB [in_bulk]={}...".format(in_bulk))
 
     (df_users_unique, df_duplicated_data,
-     df_duplicated_none) = separate_users_df(df_users)
+     df_duplicated_none) = aggregate_users_df(df_users)
 
+    # Inset new portion of unique users
+    sync_users = build_sync_users(session, df_users_unique)
+    session.add_all(sync_users)
+    session.commit()
+
+
+    # df_users_unique = db_utils.df_to_list_of_dicts(df_users_unique)
+    #
+    #
     # if not in_bulk:
     #     with progressbar.ProgressBar(max_value=len(users_data)) as bar:
     #
@@ -117,7 +127,25 @@ def insert_users_df_to_db(session, df_users, in_bulk=False):
     return None, None
 
 
-def separate_users_df(df_users):
+def build_sync_users(session, df_users):
+    global actual_sync
+    users = []
+    # df_users_unique_kwargs = df_users.to_dict('records')
+    for user in df_users.itertuples():
+        #TODO: Avoid sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError)
+        # UNIQUE constraint failed: users.hash_id e.g. force sync with the same
+        # data
+        u = User.as_unique(
+            session=session,
+            hash_id=user.user_id)
+        u.name = user.user_name
+        u.sync_id = actual_sync.id
+        users.append(u)
+
+    return users
+
+
+def aggregate_users_df(df_users):
     # Unique user_id w/o rows w/ none like values
     # TODO: Add cases to choose name from name and none values, like, for now
     #  first is taken

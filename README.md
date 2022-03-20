@@ -128,7 +128,17 @@ http://localhost:5000/load_data?forced=1 - forced sync
     "parsing_results": "{\"total_rows\": 10224, \"meets_rows\": 10078, \"users_rows\": 146}",
     "resp_headers": "{\"x-amz-id-2\": \"2crDIt2C3mXXYl5hXFFyZwFHtR3+IgByRRUwMzWXwM5oBJjjN9s+qTdWEHl26LrcKyqdNrlwrMw=\", \"x-amz-request-id\": \"4460MDDH9XRVSVDD\", \"Date\": \"Sat, 19 Mar 2022 12:12:40 GMT\", \"Last-Modified\": \"Fri, 30 Apr 2021 12:22:36 GMT\", \"ETag\": \"\\\"2d8a471d9e1614bead864637232427d4\\\"\", \"Content-Disposition\": \"attachment; filename=\\\"freebusy-1.0.0.txt\\\"\", \"Accept-Ranges\": \"bytes\", \"Content-Type\": \"application/octet-stream\", \"Server\": \"AmazonS3\", \"Content-Length\": \"3431097\", \"Connection\": \"close\"}",
     "start_date": "Sat, 19 Mar 2022 13:12:38 GMT",
-    "status": "finished"
+    "status": "finished",
+    "users": [
+        {
+            "created_date": "Sun, 20 Mar 2022 00:43:54 GMT",
+            "hash_id": "14557060022335029249916727706878466304",
+            "id": 140,
+            "name": "Willie Dennis",
+            "sync_id": 322,
+            "updated_date": null
+        }
+    ]
 }
 ```
 
