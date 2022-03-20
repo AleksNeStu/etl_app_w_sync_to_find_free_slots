@@ -50,7 +50,7 @@ class Sync(SqlAlchemyBase):
     from data.models.meets import Meet
     meets: List[Meet] = orm.relationship(
         Meet.__name__, back_populates='sync', order_by=[
-            Meet.meet_start_date.desc(), Meet.meet_end_date.desc(),
+            Meet.start_date.desc(), Meet.end_date.desc(),
         ])
 
     # not synced items (users and meets) per sync
