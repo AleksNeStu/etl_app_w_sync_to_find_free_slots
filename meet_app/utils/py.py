@@ -1,9 +1,11 @@
+import json
 import os
 import sys
 from importlib import import_module
 from inspect import isclass
 from pkgutil import iter_modules
-import json
+from typing import Iterable
+
 
 class DictToObj(dict):
     def __init__(self, *args, default_val='', **kwargs):
@@ -137,3 +139,13 @@ def to_bool(txt):
         pass
 
     return
+
+
+def flatten(items):
+    """Yield items from any nested iterable."""
+    for x in items:
+        if isinstance(x, Iterable) and not isinstance(x, (str, bytes)):
+            for sub_x in flatten(x):
+                yield sub_x
+        else:
+            yield x

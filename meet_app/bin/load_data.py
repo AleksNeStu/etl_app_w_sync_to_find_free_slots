@@ -29,11 +29,24 @@ import data.db_session as db_session
 req, resp, last_sync, actual_sync, errors, parsing_results = (
     None, None, None, None, [], {})
 
+#TODO: Consider cases when hashes for users and meets are not consinstent
+# from 3rd party server (need to assign internal checks using utils.db.to_hash
+# or more simple md5)
 #TODO: Add type hints
 #TODO: Consider avoid using global scope vars
+#TODO: Add progressbar flow
 #TODO: Refactor module and extract based on responsibility parts
 #TODO: Add proper logging and errors, results collecting
 def run(forced=False):
+    """
+    # Not used pandas.DataFrame.to_sql approach which allows quickly
+    # complete the task even skip duplicates, but applied collecting
+    # all items more accurate, e.g. for future investigation purposes
+    # as well as make consistent solution with ORM models across whole
+    # project.
+    # engine = db_session.create_engine()
+    # df_users.to_sql('superstore', engine)
+    """
     global last_sync, actual_sync, req, resp, errors, parsing_results
 
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -49,15 +62,8 @@ def run(forced=False):
             df_users, df_meets = extract_pandas_data_frames(remote_data)
 
             # Storing users data to DB.
-            # Not used pandas.DataFrame.to_sql approach which allows quickly
-            # complete the task even skip duplicates, but applied collecting
-            # all items more accurate, e.g. for future investigation purposes
-            # as well as make consistent solution with ORM models across whole
-            # project.
-            # engine = db_session.create_engine()
-            # df_users.to_sql('superstore', engine)
-            db_users_synced, db_not_synced_items_users = insert_users_df_to_db(
-                session, df_users, in_bulk=True)
+            db_users_synced, db_not_synced_items_users = insert_df_users_to_db(
+                session, df_users)
 
             # Storing meets data to DB.
             # ...
@@ -78,9 +84,8 @@ def run(forced=False):
     return sync
 
 
-def insert_users_df_to_db(session, df_users, in_bulk=False):
-    
-    logging.info("Inserting users data to DB [in_bulk]={}...".format(in_bulk))
+def insert_df_users_to_db(session, df_users):
+    logging.info("Inserting users data to DB")
 
     (df_users_unique, df_duplicated_data,
      df_duplicated_none) = aggregate_users_df(df_users)
@@ -101,7 +106,11 @@ def insert_users_df_to_db(session, df_users, in_bulk=False):
 
     session.commit()
 
-    return None, None
+    db_not_synced_items_users = list(py_utils.flatten(
+        [sync_users_duplicated_data_items, sync_users_duplicated_none_items]))
+    logging.info("Inserting users data to DB is finished.")
+
+    return sync_users, db_not_synced_items_users
 
 
 def build_sync_users(session, df_users):
@@ -192,6 +201,19 @@ def aggregate_users_df(df_users):
 
 
 def extract_pandas_data_frames(remote_data):
+    """
+    Skip convertin datetime related columns to datetime, cause pandas in case
+    of all parsed rows is convertin type o column to datetime64 even
+    dateparse returns datetime. If try to convert datetime64 to datetime
+    using x.astype(datetime.datetime) return int instead of datetime.
+    Additionally issue with store d64 to datetime sa columns.
+
+    df_meets['meet_start_date'] = df_meets['meet_start_date'].apply(dateparse)
+    df_meets['meet_end_date'] = df_meets['meet_end_date'].apply(dateparse)
+    df_meets['meet_start_date'] = pd.to_datetime(
+        df_meets['meet_start_date'],
+        format=form, errors='ignore', unit='s').dt.tz_localize('UTC')
+    """
     global parsing_results
 
     io_data = StringIO(str(remote_data, 'utf-8'))
@@ -219,20 +241,8 @@ def extract_pandas_data_frames(remote_data):
     df_meets = df_meets.rename(
         columns={'c1': 'user_id', 'c2': 'meet_start_date',
                  'c3': 'meet_end_date', 'c4': 'meet_id'})
+
     # Use precise datetime parsing to keep contarct with remote data
-
-    # Skip convertin datetime related columns to datetime, cause pandas in case
-    # of all parsed rows is convertin type o column to datetime64 even
-    # dateparse returns datetime. If try to convert datetime64 to datetime
-    # using x.astype(datetime.datetime) return int instead of datetime.
-    # Additionally issue with store d64 to datetime sa columns.
-
-    # df_meets['meet_start_date'] = df_meets['meet_start_date'].apply(dateparse)
-    # df_meets['meet_end_date'] = df_meets['meet_end_date'].apply(dateparse)
-    # df_meets['meet_start_date'] = pd.to_datetime(
-    #     df_meets['meet_start_date'],
-    #     format=form, errors='ignore', unit='s').dt.tz_localize('UTC')
-
     df_users = df[df['c3'].isnull()].dropna(how='all', axis=1).copy()
     df_users = df_users.rename(columns={'c1': 'user_id', 'c2': 'user_name'})
 
