@@ -81,6 +81,7 @@ EXP_MEET_LEN = timedelta(minutes=30)
 USERS_IDS = [1, 2, 8, 9]
 
 
+@Timer(text=f"Time consumption for {'cut_left_start_dt'}: {{:.3f}}")
 def cut_left_start_dt(exp_slot, exp_working_hours):
     w_start_t = exp_working_hours.start  # w1
     w_end_t = exp_working_hours.end  # w2
@@ -99,6 +100,7 @@ def cut_left_start_dt(exp_slot, exp_working_hours):
     return l_start_dt
 
 
+@Timer(text=f"Time consumption for {'cut_right_end_dt'}: {{:.3f}}")
 def cut_right_end_dt(exp_slot, exp_working_hours):
     w_start_t = exp_working_hours.start  # w1
     w_end_t = exp_working_hours.end  # w2
@@ -128,9 +130,46 @@ def get_exp_slot_w_working_hours(exp_slot, exp_working_hours):
     return exp_slot_w_hours
 
 
+@Timer(text=f"Time consumption for {'split_middle_slots'}: {{:.3f}}")
+def split_middle_slots(middle_slots, exp_slot_w_hours, exp_working_hours):
+    # In func scope helpers.
+    # -------------------------------------------------------
+    #TODO: Extract on func w/ param start or end
+    def split_left(slot):
+        # Possibly split very first slot.
+        if (not exp_slot_w_hours.contains(slot) and
+                slot.intersects(exp_slot_w_hours)):
+            slot.start = cut_left_start_dt(slot, exp_working_hours)
+        return slot
+
+    def split_right(slot):
+        # Possibly split very first slot.
+        if (not exp_slot_w_hours.contains(slot) and
+                slot.intersects(exp_slot_w_hours)):
+            slot.end = cut_right_end_dt(slot, exp_working_hours)
+        return slot
+    # -------------------------------------------------------
+
+    if len(middle_slots) == 0:
+        return middle_slots
+
+    #TODO: To test and adjust
+    if len(middle_slots) == 1:
+        slot = split_right(split_left(middle_slots[0]))
+        return [slot]
+
+    # [<Timeslot(start=2012-05-21 08:30:00, end=2012-05-21 10:00:00)>, -> 8.30
+    # ...
+    # <Timeslot(start=2012-05-23 16:00:00, end=2012-05-23 17:30:00)>] -> 17.30
+    if len(middle_slots) >= 2:
+        middle_slots[0] = split_left(middle_slots[0])
+        middle_slots[-1] = split_right(middle_slots[-1])
+        return middle_slots
+
+
 #TODO: Improve code and logic (but works as expected)
 @Timer(text=f"Time consumption for {'get_exp_slot_w_working_hours'}: {{:.3f}}")
-def get_middle_slots(busy_slots, exp_slot_w_hours):
+def get_middle_slots_w_union(busy_slots, exp_slot_w_hours, exp_working_hours):
     middle_slots = []
 
     unioned_slot = False
@@ -158,10 +197,12 @@ def get_middle_slots(busy_slots, exp_slot_w_hours):
         if i == (len(busy_slots) - 2) and next.intersects(exp_slot_w_hours):
             middle_slots.append(next)
 
-    # [<Timeslot(start=2012-05-22 07:00:00, end=2012-05-22 09:00:00)>,
+    # [<Timeslot(start=2012-05-21 06:00:00, end=2012-05-21 10:00:00)>,
+    # <Timeslot(start=2012-05-22 07:00:00, end=2012-05-22 09:00:00)>,
     # <Timeslot(start=2012-05-22 10:00:00, end=2012-05-22 10:30:00)>,
     # <Timeslot(start=2012-05-22 11:00:00, end=2012-05-22 15:00:00)>,
-    # <Timeslot(start=2012-05-22 15:30:00, end=2012-05-22 17:30:00)>]
+    # <Timeslot(start=2012-05-22 15:30:00, end=2012-05-22 17:30:00)>,
+    # <Timeslot(start=2012-05-23 16:00:00, end=2012-05-23 19:00:00)>]
     return middle_slots
 
 
@@ -174,11 +215,16 @@ def extract_all_slots(busy_slots, exp_slot, exp_working_hours):
     right_slot = Timeslot(exp_slot_w_hours.end, exp_slot_w_hours.end)
 
     # MIDDLE
-    middle_slots = get_middle_slots(busy_slots, exp_slot_w_hours)
+    middle_w_union_slots = get_middle_slots_w_union(
+        busy_slots, exp_slot_w_hours, exp_working_hours)
+    adjusted_middle_slots = split_middle_slots(
+        middle_w_union_slots, exp_slot_w_hours, exp_working_hours)
 
     # ALL
-    all_slots = sorted([left_slot] + middle_slots + [right_slot])
+    all_slots = sorted([left_slot] + adjusted_middle_slots + [right_slot])
+
     return all_slots
+
 
 #TODO: Replace to real DB users meets data
 @Timer(text=f"Time consumption for {'get_busy_slots'}: {{:.3f}}")
@@ -187,6 +233,7 @@ def get_busy_slots(users_ids):
     del users_ids
     users_busy_slots = list(py_utils.flatten(BUSY_SLOTS))
     return sorted(users_busy_slots)
+
 
 # @Timer(text=f"Time consumption for {'get_free_slots'}: {{:.3f}}")
 def get_free_slots(users_ids, exp_slot, exp_meet_len, exp_working_hours):
