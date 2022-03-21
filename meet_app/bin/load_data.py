@@ -298,8 +298,9 @@ def aggregate_users_df(df_users):
         df_duplicated_none]).sort_values('user_name')
     if not df_duplicates_all.reset_index(drop=True).equals(
             df_duplicates_all_collected.reset_index(drop=True)):
-        raise (f'Pandas users dataframes analyzing error due to diff count '
-               f'of rows: {users_kwargs}')
+        raise Exception(
+            f'Pandas users dataframes analyzing error due to diff count '
+            f'of rows: {users_kwargs}')
 
     return df_users_unique, df_duplicated_data, df_duplicated_none
 
@@ -348,8 +349,9 @@ def aggregate_meets_df(df_meets):
         df_duplicated_none]).sort_values('meet_start_date')
     if not df_duplicates_all.reset_index(drop=True).equals(
             df_duplicates_all_collected.reset_index(drop=True)):
-        raise (f'Pandas meets dataframes analyzing error due to diff count '
-               f'of rows: {meets_kwargs}')
+        raise Exception(
+            f'Pandas meets dataframes analyzing error due to diff count '
+            f'of rows: {meets_kwargs}')
 
     return df_meets_unique, df_duplicated_data, df_duplicated_none
 
@@ -404,8 +406,9 @@ def extract_pandas_data_frames(remote_data):
         users_rows=users_rows_count)
 
     if sum([meets_rows_count, users_rows_count]) != total_rows_count:
-        raise (f'Pandas initial dataframes parsing error due to diff count '
-               f'of rows: {pandas_kwargs}')
+        raise Exception(
+            f'Pandas initial dataframes parsing error due to diff count '
+            f'of rows: {pandas_kwargs}')
     parsing_results.update(pandas_kwargs)
 
     return df_users, df_meets

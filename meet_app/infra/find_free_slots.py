@@ -175,7 +175,8 @@ def get_free_slots(users_ids, exp_slot, exp_meet_len, exp_working_hours):
     for i in range(len(all_slots) - 1):
         start, end = (all_slots[i].end, all_slots[i + 1].start)
         if start <= end:
-            raise (f'Error on getting free time slots for users: {users_ids}')
+            raise Exception(
+                f'Error on getting free time slots for users: {users_ids}')
 
         while start + exp_meet_len <= end:
             free_slots.append((start, start + exp_meet_len))
