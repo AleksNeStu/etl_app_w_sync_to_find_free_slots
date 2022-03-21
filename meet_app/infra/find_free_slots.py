@@ -56,7 +56,19 @@ USER3_BUSY_SLOTS = [
         datetime(2022, 5, 22, 11, 30)),
 ]
 
-BUSY_SLOTS = USER1_BUSY_SLOTS, USER2_BUSY_SLOTS, USER3_BUSY_SLOTS
+USER4_BUSY_SLOTS = [
+    # Overlaps w/ exp_slot_w_hours on left side => 8.30 - 10.00
+    Timeslot(datetime(2012, 5, 21, 6),
+             datetime(2012, 5, 21, 10, 00)),
+
+    # Overlaps w/ exp_slot_w_hours on right side => 16.00 - 17.30
+    Timeslot(
+        datetime(2012, 5, 23, 16),
+        datetime(2012, 5, 23, 19)),
+]
+
+BUSY_SLOTS = (
+    USER1_BUSY_SLOTS, USER2_BUSY_SLOTS, USER3_BUSY_SLOTS, USER4_BUSY_SLOTS)
 
 EXP_TIMESLOT = Timeslot(
     datetime(2012, 5, 21, 6),
@@ -69,11 +81,9 @@ EXP_MEET_LEN = timedelta(minutes=30)
 USERS_IDS = [1, 2, 8, 9]
 
 
-@Timer(text=f"Time consumption for {'get_exp_slot_w_working_hours'}: {{:.3f}}")
-def get_exp_slot_w_working_hours(exp_slot, exp_working_hours):
+def cut_left_start_dt(exp_slot, exp_working_hours):
     w_start_t = exp_working_hours.start  # w1
     w_end_t = exp_working_hours.end  # w2
-
     # LEFT
     l_start_dt = exp_slot.start
     l_start_t = l_start_dt.time()  # x1
@@ -86,7 +96,12 @@ def get_exp_slot_w_working_hours(exp_slot, exp_working_hours):
         l_start_dt = datetime.combine(l_start_dt.date(), w_start_t)
     # elif w1 <= l_start_t:
     #     # l_start_t: no changes
+    return l_start_dt
 
+
+def cut_right_end_dt(exp_slot, exp_working_hours):
+    w_start_t = exp_working_hours.start  # w1
+    w_end_t = exp_working_hours.end  # w2
     # RIGHT
     r_end_dt = exp_slot.end
     r_end_t = r_end_dt.time()  # x2
@@ -100,6 +115,13 @@ def get_exp_slot_w_working_hours(exp_slot, exp_working_hours):
         r_end_dt = datetime.combine(r_end_dt.date(), w_end_t)
     # elif w2 >= w_end_t:
     #     # w_end_t: no changes
+    return r_end_dt
+
+
+@Timer(text=f"Time consumption for {'get_exp_slot_w_working_hours'}: {{:.3f}}")
+def get_exp_slot_w_working_hours(exp_slot, exp_working_hours):
+    l_start_dt = cut_left_start_dt(exp_slot, exp_working_hours)
+    r_end_dt = cut_right_end_dt(exp_slot, exp_working_hours)
 
     exp_slot_w_hours = Timeslot(l_start_dt, r_end_dt)
 
