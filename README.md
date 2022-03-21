@@ -209,6 +209,8 @@ http://localhost:5000/load_data?forced=1 - forced sync
 - Redo 2.1 interpretation part.
 - Redo to mysql version w/ a docker containers.
 - Consider documented DB like MongoDB version switch w/ ODM.
+- Didn't used pandas possibilities to analyze data time slots to make pandas layer only
+responsible to initial extracting and inconsistency analyze
 
 ### 2.3 Examples
 1. Result of sync response via web handler:

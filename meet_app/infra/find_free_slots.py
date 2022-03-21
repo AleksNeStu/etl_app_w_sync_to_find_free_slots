@@ -66,14 +66,45 @@ EXP_WORKING_HOURS = WorkingHours(time(8, 30), time(17, 30))
 
 EXP_MEET_LEN = timedelta(minutes=30)
 
+USERS_IDS = [1, 2, 8, 9]
+
 
 @Timer(text=f"Time consumption for {'get_exp_slot_w_working_hours'}: {{:.3f}}")
-def get_exp_slot_w_working_hours(exp_slot, exp_working_hours):
-    left_start = exp_slot.start
-    left_end = exp_slot.end
+def get_exp_slot_w_working_hours(exp_slot, exp_working_hours): # x1 = l_start_t
+    w_start_t = exp_working_hours.start  # w1
+    w_end_t = exp_working_hours.end  # w2
 
-    l_start = exp_working_hours.start
-    l_end = exp_working_hours.end
+    # LEFT
+    l_start_dt = exp_slot.start
+    l_start_t = l_start_dt.time()  # x1
+    if w_start_t < l_start_t and l_start_t > w_end_t:
+        # next day
+        l_start_dt = datetime.combine(
+            (l_start_dt + timedelta(days=1)).date(), w_start_t)
+    elif w_start_t >= l_start_t:
+        # w1: replace
+        l_start_dt = datetime.combine(l_start_dt.date(), w_start_t)
+    # elif w1 <= l_start_t:
+    #     # l_start_t: no changes
+
+    # RIGHT
+    r_end_dt = exp_slot.end
+    r_end_t = r_end_dt.time()  # x2
+
+    if w_end_t > r_end_t and r_end_t < w_start_t:
+        # next day
+        r_end_dt = datetime.combine(
+            (r_end_dt - timedelta(days=1)).date(), w_end_t)
+    elif w_end_t <= r_end_t:
+        # w2: replace
+        r_end_dt = datetime.combine(r_end_dt.date(), w_end_t)
+    # elif w2 >= w_end_t:
+    #     # w_end_t: no changes
+
+    exp_slot_w_hours = Timeslot(l_start_dt, r_end_dt)
+
+    return exp_slot_w_hours
+
 
 #TODO: Improve code and logic (but works as expected)
 @Timer(text=f"Time consumption for {'get_exp_slot_w_working_hours'}: {{:.3f}}")
@@ -121,9 +152,10 @@ def extract_all_slots(busy_slots, exp_slot, exp_working_hours):
 #TODO: Replace to real DB users meets data
 @Timer(text=f"Time consumption for {'get_busy_slots'}: {{:.3f}}")
 def get_busy_slots(users_ids):
+    # With duplications to make repr of steps, but sorted for future proc.
     del users_ids
-    users_busy_slots = py_utils.flatten(BUSY_SLOTS)
-    return sorted(set(BUSY_SLOTS))
+    users_busy_slots = list(py_utils.flatten(BUSY_SLOTS))
+    return sorted(users_busy_slots)
 
 # @Timer(text=f"Time consumption for {'get_free_slots'}: {{:.3f}}")
 def get_free_slots(users_ids, exp_slot, exp_meet_len, exp_working_hours):
@@ -144,7 +176,6 @@ def get_free_slots(users_ids, exp_slot, exp_meet_len, exp_working_hours):
 
     return free_slots
 
-proposed_slots = get_free_slots(
-    [1, 2, 8, 9], EXP_TIMESLOT, EXP_MEET_LEN, EXP_WORKING_HOURS)
 
-g1 = []
+proposed_slots = get_free_slots(
+    USERS_IDS, EXP_TIMESLOT, EXP_MEET_LEN, EXP_WORKING_HOURS)
