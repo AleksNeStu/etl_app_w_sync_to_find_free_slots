@@ -40,7 +40,7 @@ req, resp, last_sync, actual_sync, errors, parsing_results = (
 #TODO: Add progressbar flow and time repr
 #TODO: Refactor module and extract based on responsibility parts
 #TODO: Add proper logging and errors, results collecting
-@Timer(text=f"Time consumption for {'run'}: {{:.3f}}")
+# @Timer(text=f"Time consumption for {'run'}: {{:.3f}}")
 def run(sync_type, forced=False):
     """
     # Not used pandas.DataFrame.to_sql approach which allows quickly
