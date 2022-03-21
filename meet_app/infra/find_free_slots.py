@@ -70,7 +70,7 @@ USERS_IDS = [1, 2, 8, 9]
 
 
 @Timer(text=f"Time consumption for {'get_exp_slot_w_working_hours'}: {{:.3f}}")
-def get_exp_slot_w_working_hours(exp_slot, exp_working_hours): # x1 = l_start_t
+def get_exp_slot_w_working_hours(exp_slot, exp_working_hours):
     w_start_t = exp_working_hours.start  # w1
     w_end_t = exp_working_hours.end  # w2
 
@@ -109,30 +109,39 @@ def get_exp_slot_w_working_hours(exp_slot, exp_working_hours): # x1 = l_start_t
 #TODO: Improve code and logic (but works as expected)
 @Timer(text=f"Time consumption for {'get_exp_slot_w_working_hours'}: {{:.3f}}")
 def get_middle_slots(busy_slots, exp_slot_w_hours):
-    #  [<Timeslot(start=2012-05-22 07:00:00, end=2012-05-22 09:00:00)>, <Timeslot(start=2012-05-22 10:00:00, end=2012-05-22 10:30:00)>, <Timeslot(start=2012-05-22 11:00:00, end=2012-05-22 15:00:00)>, <Timeslot(start=2012-05-22 15:30:00, end=2012-05-22 17:10:00)>]
     middle_slots = []
-    sorted_appointments = sorted(busy_slots)
-    count = len(sorted_appointments) - 1
-    unioned_app = False
-    for i in range(count):
-        first, second = (sorted_appointments[i], sorted_appointments[i + 1])
 
-        if not first.intersects(second):
+    unioned_slot = False
+    for i in range(len(busy_slots) - 1):
+        current, next = (busy_slots[i], busy_slots[i + 1])
 
-            if unioned_app:
-                unioned_app = unioned_app.union(first)
-                middle_slots.append(unioned_app)
-                unioned_app = None
+        # Busy slot not in range initial search.
+        if not current.intersects(exp_slot_w_hours):
+            continue
+
+        if not current.intersects(next):
+
+            if unioned_slot:
+                unioned_slot = unioned_slot.union(current)
+                middle_slots.append(unioned_slot)
+                unioned_slot = None
             else:
-                middle_slots.append(first)
+                middle_slots.append(current)
         else:
-            if not unioned_app:
-                unioned_app = first
+            if not unioned_slot:
+                unioned_slot = current
             else:
-                unioned_app = unioned_app.union(first)
+                unioned_slot = unioned_slot.union(current)
 
-        if i == (count - 1):
-            middle_slots.append(second)
+        if i == (len(busy_slots) - 2) and next.intersects(exp_slot_w_hours):
+            middle_slots.append(next)
+
+    # [<Timeslot(start=2012-05-22 07:00:00, end=2012-05-22 09:00:00)>,
+    # <Timeslot(start=2012-05-22 10:00:00, end=2012-05-22 10:30:00)>,
+    # <Timeslot(start=2012-05-22 11:00:00, end=2012-05-22 15:00:00)>,
+    # <Timeslot(start=2012-05-22 15:30:00, end=2012-05-22 17:30:00)>]
+    return middle_slots
+
 
 @Timer(text=f"Time consumption for {'extract_all_slots'}: {{:.3f}}")
 def extract_all_slots(busy_slots, exp_slot, exp_working_hours):
