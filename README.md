@@ -1,5 +1,9 @@
 # Test task: Application to get suggestions for suitable meeting times
 
+<p align="center">
+<img src="assets/free_slots_resp_json.png" alt="App result of get free slots" width="80%">
+</p>
+
 ## 1. Requirements
 
 [Original requirements](info/assignment_2.0.pdf)
@@ -144,7 +148,7 @@ analyze purposes.
 URL: 
 http://localhost:5000/get_free_slots
 
-Request:
+Request via body (JS and dev tools):
 ```JS
 fetch('http://localhost:5000/get_free_slots', {
     method: 'POST',
@@ -163,6 +167,9 @@ fetch('http://localhost:5000/get_free_slots', {
     .then((response) => response.json())
     .then((json) => console.log(json));
 ```
+
+Request via query params: \
+http://localhost:5000/get_free_slots?users_ids=13,77,99&start_date=2015-02-02T06:00:00&end_date=2015-02-03T20:00:00&meet_len=30&start_work=08:30:00&end_work=17:30:00
 
 Response:
 ```JSON
