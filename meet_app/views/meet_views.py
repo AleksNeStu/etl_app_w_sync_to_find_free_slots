@@ -45,18 +45,41 @@ def get_free_slots():
     if req_data is None:
         return 'Bad request to get free slots', 400
 
+
+    search_slot = Timeslot(req_data.start_date, req_data.end_date)
     free_slots_kwargs = dict(
         users_ids=req_data.users_ids,
-        exp_slot=Timeslot(req_data.start_date, req_data.end_date),
+        exp_slot=search_slot,
         exp_meet_len=req_data.meet_len,
         exp_working_hours=py_utils.WorkingHours(
             req_data.start_work, req_data.end_work)
     )
 
-    free_slots = time_slots.get_free_slots(**free_slots_kwargs)
+    busy_slots, free_slots = time_slots.get_free_slots(**free_slots_kwargs)
     free_slots_repr = [str(free_slot) for free_slot in free_slots]
 
-    return flask.jsonify(free_slots_repr)
+    b_min_slot, b_max_slot, b_joined_slot = time_slots.get_joined_slot(
+        busy_slots)
+    f_min_slot, f_max_slot, _ = time_slots.get_joined_slot(free_slots)
+    overlapped_w_busy_slots = search_slot.intersects(b_joined_slot)
+
+    free_slots_resp = {
+        'busy_slots_meta': {
+            'min': str(b_min_slot),
+            'max': str(b_max_slot),
+            'count': len(busy_slots)
+        },
+        'free_slots_meta': {
+            'min': str(f_min_slot),
+            'max': str(f_max_slot),
+            'count': len(free_slots)
+        },
+        'search_params': str(free_slots_kwargs),
+        'overlapped_w_busy_slots': overlapped_w_busy_slots,
+        'free_slots': free_slots_repr,
+    }
+
+    return flask.jsonify(free_slots_resp)
 
 
 @blueprint.route('/', methods=['GET'])

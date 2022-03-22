@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, timezone
 
 from codetiming import Timer
 from timeslot import Timeslot
@@ -72,6 +72,15 @@ EXP_WORKING_HOURS = py_utils.WorkingHours(time(8, 30), time(17, 30))
 EXP_MEET_LEN = timedelta(minutes=30)
 
 USERS_IDS = [1, 2, 8, 9]
+
+
+@Timer(text=f"Time consumption for {'get_slot_from_slots'}: {{:.3f}}")
+def get_joined_slot(slots):
+    min_slot = min(slots)
+    max_slot = max(slots)
+    joined_slot = Timeslot(min_slot.start.replace(tzinfo=timezone.utc),
+                           max_slot.end.replace(tzinfo=timezone.utc))
+    return min_slot, max_slot, joined_slot
 
 
 @Timer(text=f"Time consumption for {'cut_left_start_dt'}: {{:.3f}}")
@@ -261,7 +270,7 @@ def get_free_slots(users_ids, exp_slot, exp_meet_len, exp_working_hours):
 
             start += exp_meet_len
 
-    return free_slots
+    return busy_slots, free_slots
 
 
 # # 100 first ids

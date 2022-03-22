@@ -15,7 +15,7 @@ from codetiming import Timer
 from data.models.meets import Meet
 from data.models.syncs import Sync, NotSyncedItem
 from data.models.users import User
-from enums.sa import SyncStatus, SyncEndReason, NotSyncedItemReason
+from enums.sa import SyncStatus, SyncEndReason, NotSyncedItemReason, SyncType
 from services import sync_service, user_service
 from utils import py as py_utils
 
@@ -530,4 +530,4 @@ def setup_db():
 
 
 if __name__ == '__main__':
-    run()
+    run(sync_type=SyncType.manual.value)
