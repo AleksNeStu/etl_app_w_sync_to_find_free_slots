@@ -42,9 +42,9 @@ def configure():
 
 
 def register_blueprints():
-    from views import meet_views
+    from views import sync_views
 
-    app.register_blueprint(meet_views.blueprint)
+    app.register_blueprint(sync_views.blueprint)
     # from utils import py as py_utils
     # views, _ = py_utils.import_modules(
     #     'views/__init__.py', 'views', w_classes=False)

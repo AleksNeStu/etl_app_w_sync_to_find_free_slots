@@ -211,6 +211,7 @@ http://localhost:5000/load_data?forced=1 - forced sync
 - Consider documented DB like MongoDB version switch w/ ODM.
 - Didn't used pandas possibilities to analyze data time slots to make pandas layer only
 responsible to initial extracting and inconsistency analyze
+- Add simple UI to find free slots
 
 ### 2.3 Examples
 1. Result of sync response via web handler:
@@ -227,6 +228,7 @@ responsible to initial extracting and inconsistency analyze
 
 
 3. Not synced items table:
+
 | reason | id | sync\_id | item\_data |
 | :--- | :--- | :--- | :--- |
 | duplicated\_data | 1 | 1 | "{\\"user\_id\\": \\"300760312550512860711662300860730112051\\", \\"user\_name\\": \\"Edward Winfield\\"}" |
