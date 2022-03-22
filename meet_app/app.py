@@ -5,20 +5,15 @@ import sys
 
 import flask
 import pytz
-import werkzeug
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from enums.sa import SyncStatus, SyncEndReason, NotSyncedItemReason, SyncType
 
 import settings
 from bin import load_data
 from bin import run_migrations
 from data import db_session
-from infra.request_mod import request_data
-from infra.response_mod import response
+from enums.sa import SyncType
 from migrations import utils as migrations_utils
-from services import sync_service
-from utils import py as py_utils
 
 app = flask.Flask(__name__)
 app.deploying = bool(int(os.getenv('IS_DEPLOY', '0')))
@@ -47,8 +42,14 @@ def configure():
 
 
 def register_blueprints():
-    # TODO: Add register blueprints
-    pass
+    from views import meet_views
+
+    app.register_blueprint(meet_views.blueprint)
+    # from utils import py as py_utils
+    # views, _ = py_utils.import_modules(
+    #     'views/__init__.py', 'views', w_classes=False)
+    # for view in views.values():
+    #     app.register_blueprint(view.blueprint)
 
 
 def setup_db():
@@ -96,27 +97,6 @@ def update_cfg():
         **settings.FLASK_ENV_CFG,
         **settings.FLASK_SEC_ENV_CFG,
     })
-
-# Sync data manually.
-# Example: http://localhost:5000/load_data?forced=1
-# Accepted 1, 0, True, False as values for forced
-# @app.route('/load_data/<int:forced>', methods=['GET']) - not flexible but quick
-@app.route('/load_data', methods=['GET'])
-@response()
-@app.errorhandler(werkzeug.exceptions.BadRequest)
-def load_meet_data():
-    req_data = request_data(flask.request)
-
-    forced = py_utils.to_bool(req_data.forced) if req_data.forced else False
-    if forced is None:
-        return 'Bad request to load data', 400
-
-    sync_type = (
-        SyncType.manual_forced.value if forced else SyncType.manual.value)
-    sync = load_data.run(sync_type=sync_type, forced=forced)
-    # Get actual sync status from DB based on sync id.
-    db_actual_sync = sync_service.get_sync(get_kwargs={'id': sync.id})
-    return flask.jsonify(db_actual_sync)
 
 
 if __name__ in ('__main__', 'meet_app.app'):
