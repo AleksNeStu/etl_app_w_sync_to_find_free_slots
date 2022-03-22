@@ -1,19 +1,10 @@
-import dataclasses
-import logging
 from datetime import datetime, timedelta, time
 
 from codetiming import Timer
 from timeslot import Timeslot
 
-from services import user_service, meet_service
+from services import meet_service
 from utils import py as py_utils
-
-
-@dataclasses.dataclass
-class WorkingHours:
-    start: time
-    end: time
-
 
 USER1_BUSY_SLOTS = [
     # Less: 2011 year
@@ -76,7 +67,7 @@ EXP_TIMESLOT = Timeslot(
     datetime(2012, 5, 21, 6),
     datetime(2012, 5, 23, 20))
 
-EXP_WORKING_HOURS = WorkingHours(time(8, 30), time(17, 30))
+EXP_WORKING_HOURS = py_utils.WorkingHours(time(8, 30), time(17, 30))
 
 EXP_MEET_LEN = timedelta(minutes=30)
 
@@ -278,7 +269,9 @@ def get_free_slots(users_ids, exp_slot, exp_meet_len, exp_working_hours):
 #
 # # db_users = user_service.get_users_by_ids(users_ids)
 # users_meets = meet_service.get_meets_by_users_ids([22])  # 64 count
-
-proposed_slots = get_free_slots(
-    USERS_IDS, EXP_TIMESLOT, EXP_MEET_LEN, EXP_WORKING_HOURS)
+# proposed_slots = get_free_slots(
+#     USERS_IDS,
+#     EXP_TIMESLOT,
+#     EXP_MEET_LEN,
+#     EXP_WORKING_HOURS)
 
