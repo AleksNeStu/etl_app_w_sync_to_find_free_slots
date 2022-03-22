@@ -218,9 +218,15 @@ responsible to initial extracting and inconsistency analyze
 <img src="assets/sync-web-resp.png" alt="Result of sync response via web handler" width="100%">
 </p>
 
-2. Not synced items table:
+2. Got free slots IDE example output: \
+[BUSY_SLOTS input](meet_app/infra/find_free_slots.BUSY_SLOTS)
+
+<p align="center">
+<img src="assets/free_slots_ide.png" alt="Got free slots IDE example" width="60%">
+</p>
 
 
+3. Not synced items table:
 | reason | id | sync\_id | item\_data |
 | :--- | :--- | :--- | :--- |
 | duplicated\_data | 1 | 1 | "{\\"user\_id\\": \\"300760312550512860711662300860730112051\\", \\"user\_name\\": \\"Edward Winfield\\"}" |
