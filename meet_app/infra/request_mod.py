@@ -1,6 +1,6 @@
 from datetime import timedelta
 from typing import Optional
-
+import json
 import flask
 from flask import Request
 from werkzeug.datastructures import MultiDict, CombinedMultiDict
@@ -46,6 +46,9 @@ def request_data(req: Optional[Request] = None,
                  **route_kwargs) -> Optional[py_utils.DictToObj]:
     req = req or flask.request
     data_src = [req.args, req.headers, req.cookies, req.form, route_kwargs]
+    req_data = getattr(req, 'data')
+    if req_data:
+        data_src.append(json.loads(req_data.decode('UTF-8')))
     # args:  The key/value pairs in the URL query string
     # headers: Header items
     # cookies: Cookies items
