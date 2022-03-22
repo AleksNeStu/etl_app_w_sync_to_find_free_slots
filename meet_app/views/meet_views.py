@@ -1,12 +1,14 @@
 import flask
 import werkzeug
 
+from bin import load_data
 from enums.sa import SyncType
+from infra import time_slots
 from infra.request_mod import request_data
 from infra.response_mod import response
 from services import sync_service
 from utils import py as py_utils
-from bin import load_data
+from timeslot import Timeslot
 
 
 blueprint = flask.Blueprint('meet', __name__, template_folder='templates')
@@ -34,11 +36,36 @@ def load_meet_data():
     return flask.jsonify(db_actual_sync)
 
 
+@blueprint.route('/get_free_slots', methods=['GET'])
+@response()
+@blueprint.errorhandler(werkzeug.exceptions.BadRequest)
+def get_free_slots():
+    req_data = request_data(flask.request)
+
+    if req_data is None:
+        return 'Bad request to get free slots', 400
+
+    free_slots_kwargs = dict(
+        users_ids=req_data.users_ids,
+        exp_slot=Timeslot(req_data.start_date, req_data.end_date),
+        exp_meet_len=req_data.meet_len,
+        exp_working_hours=py_utils.WorkingHours(
+            req_data.start_work, req_data.end_work)
+    )
+
+    free_slots = time_slots.get_free_slots(**free_slots_kwargs)
+    free_slots_repr = [str(free_slot) for free_slot in free_slots]
+
+    return flask.jsonify(free_slots_repr)
+
+
 @blueprint.route('/', methods=['GET'])
 @response()
 @blueprint.errorhandler(werkzeug.exceptions.BadRequest)
 def get_meta_info():
     return flask.jsonify([{
-        'a1': 1,
-        'a2': 2,
+        'app': 'Application to get suggestions for suitable meeting times',
+        'url_sync_data': 'http://localhost:5000/load_data',
+        'url_sync_data_force': 'http://localhost:5000/load_data?forced=1',
+        'url_get_free_slots': 'http://localhost:5000/get_free_slots',
     }])
