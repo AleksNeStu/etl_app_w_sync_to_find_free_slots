@@ -199,8 +199,8 @@ def build_sync_meets(session, df_meets):
             # '1/1/2015 12:00:0' will be interpreted by parser.parse as
             # datetime(`2015-01-01 11:00:00+00:00`) as well as utc time zone
             # conversion is no saved here.
-            start_date = py_utils.parse_datetime(df_meet.meet_start_date)
-            end_date = py_utils.parse_datetime(df_meet.meet_end_date)
+            start_date = py_utils.parse_server_dt(df_meet.meet_start_date)
+            end_date = py_utils.parse_server_dt(df_meet.meet_end_date)
             # No meet or start datetime more than end datetime.
             if not start_date or not end_date or start_date >= end_date:
                 df_meets_not_recognized_data.append(pd.DataFrame([df_meet]))
@@ -404,6 +404,7 @@ def extract_pandas_data_frames(remote_data):
         total_rows=total_rows_count,
         meets_rows=meets_rows_count,
         users_rows=users_rows_count)
+
 
     if sum([meets_rows_count, users_rows_count]) != total_rows_count:
         raise Exception(

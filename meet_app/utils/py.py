@@ -1,13 +1,27 @@
-import datetime
+import dataclasses
 import json
 import os
 import sys
+from datetime import datetime, time, timezone
 from importlib import import_module
 from inspect import isclass
 from pkgutil import iter_modules
 from typing import Iterable
 
+from timeslot import Timeslot
+
 import settings
+
+
+@dataclasses.dataclass
+class WorkingHours:
+    start: time
+    end: time
+
+class MeetTimeslot(Timeslot):
+
+    def __str__(self) -> str:
+        return '<Timeslot(start={}, end={})>'.format(self.start, self.end)
 
 
 class DictToObj(dict):
@@ -154,11 +168,28 @@ def flatten(items):
             yield x
 
 
-def parse_datetime(date_string, format=settings.DATA_TIME_FORMAT):
+def parse_datetime(date_string, format):
         try:
-            parsed_date = datetime.datetime.strptime(date_string, format)
+            parsed_date = datetime.strptime(date_string, format)
             # Based on task agreement all data in UTC time zone.
-            return parsed_date.replace(tzinfo=datetime.timezone.utc)
-
+            return parsed_date.replace(tzinfo=timezone.utc)
         except Exception:
             return
+
+
+def parse_time(time_string, format):
+    try:
+        return datetime.strptime(time_string, format).time()
+    except Exception:
+        return
+
+
+def parse_server_dt(date_string):
+    return parse_datetime(date_string, settings.DATA_TIME_SYNC_SERVER_FORMAT)
+
+
+def parse_req_dt(date_string):
+    return parse_datetime(date_string, settings.DATA_TIME_REQUEST_FORMAT)
+
+def parse_req_t(time_string):
+    return parse_time(time_string, settings.TIME_REQUEST_FORMAT)
