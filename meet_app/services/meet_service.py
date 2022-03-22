@@ -20,3 +20,10 @@ def get_meets_by_users_ids(users_ids: List[int], session: orm.Session = None,
     res = meets.filter(Meet.user_id.in_(users_ids)).all()
 
     return res
+
+def get_busy_timeslots_by_users_ids(users_ids: List[int]):
+    users_meets = get_meets_by_users_ids(users_ids)
+    meets_timeslots = [
+        u_meet.timeslot for u_meet in users_meets
+    ]
+    return meets_timeslots

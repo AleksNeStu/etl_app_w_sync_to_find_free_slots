@@ -232,8 +232,8 @@ def extract_all_slots(busy_slots, exp_slot, exp_working_hours):
 @Timer(text=f"Time consumption for {'get_busy_slots'}: {{:.3f}}")
 def get_busy_slots(users_ids):
     # With duplications to make repr of steps, but sorted for future proc.
-    del users_ids
-    users_busy_slots = list(py_utils.flatten(BUSY_SLOTS))
+    users_busy_slots = meet_service.get_busy_timeslots_by_users_ids(users_ids)
+    # users_busy_slots = list(py_utils.flatten(BUSY_SLOTS))
     return sorted(users_busy_slots)
 
 
@@ -273,11 +273,11 @@ def get_free_slots(users_ids, exp_slot, exp_meet_len, exp_working_hours):
     return free_slots
 
 
-# 100 first ids
-users_ids=list(range(1, 101, 1))
-
-db_users = user_service.get_users_by_ids(users_ids)
-users_meets = meet_service.get_meets_by_users_ids(users_ids)
+# # 100 first ids
+# users_ids=list(range(1, 101, 1))
+#
+# # db_users = user_service.get_users_by_ids(users_ids)
+# users_meets = meet_service.get_meets_by_users_ids([22])  # 64 count
 
 proposed_slots = get_free_slots(
     USERS_IDS, EXP_TIMESLOT, EXP_MEET_LEN, EXP_WORKING_HOURS)

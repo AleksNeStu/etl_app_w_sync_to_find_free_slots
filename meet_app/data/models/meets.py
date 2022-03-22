@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 import sqlalchemy as sa
 import sqlalchemy.orm as orm
-
+from timeslot import Timeslot
 from data.models.modelbase import SqlAlchemyBase, UniqueMixin
 
 
@@ -43,3 +43,8 @@ class Meet(UniqueMixin, SqlAlchemyBase):
     @classmethod
     def unique_filter(cls, query, hash_id):
         return query.filter(Meet.hash_id == hash_id)
+
+    @property
+    def timeslot(self):
+        timeslot = Timeslot(self.start_date, self.end_date)
+        return timeslot
