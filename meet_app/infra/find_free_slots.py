@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, time
 from codetiming import Timer
 from timeslot import Timeslot
 
+from services import user_service, meet_service
 from utils import py as py_utils
 
 
@@ -272,5 +273,12 @@ def get_free_slots(users_ids, exp_slot, exp_meet_len, exp_working_hours):
     return free_slots
 
 
+# 100 first ids
+users_ids=list(range(1, 101, 1))
+
+db_users = user_service.get_users_by_ids(users_ids)
+users_meets = meet_service.get_meets_by_users_ids(users_ids)
+
 proposed_slots = get_free_slots(
     USERS_IDS, EXP_TIMESLOT, EXP_MEET_LEN, EXP_WORKING_HOURS)
+

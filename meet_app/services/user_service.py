@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, List
 
 import sqlalchemy.orm as orm
 from sqlalchemy import and_
@@ -20,6 +20,13 @@ def get_user(get_kwargs: dict, session: orm.Session = None,
     users = users or get_users_qr(session)
     _and = [getattr(User, k) == v for k, v in get_kwargs.items()]
     res = users.filter(and_(*_and)).order_by(User.id.desc()).first()
+
+    return res
+
+def get_users_by_ids(ids: List[int], session: orm.Session = None,
+                     users: orm.Query = None) -> Optional[User]:
+    users = users or get_users_qr(session)
+    res = users.filter(User.id.in_(ids)).all()
 
     return res
 
