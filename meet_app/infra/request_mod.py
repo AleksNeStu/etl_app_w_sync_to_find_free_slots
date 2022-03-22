@@ -10,9 +10,9 @@ from utils import py as py_utils
 
 def convert_get_slots_data(data):
     # Convertor of get free slots: '/get_free_slots'
-    # users_ids:1,7,13
-    # start_date:2012-05-21T06:00:00
-    # end_date:2012-05-23T20:00:00
+    # users_ids:13,77,99
+    # start_date:2015-02-02T06:00:00
+    # end_date:2015-02-03T20:00:00
     # meet_len:30
     # start_work:08:30:00
     # end_work:17:30:00

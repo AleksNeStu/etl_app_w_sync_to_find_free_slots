@@ -36,7 +36,7 @@ def load_meet_data():
     return flask.jsonify(db_actual_sync)
 
 
-@blueprint.route('/get_free_slots', methods=['GET'])
+@blueprint.route('/get_free_slots', methods=['GET', 'POST'])
 @response()
 @blueprint.errorhandler(werkzeug.exceptions.BadRequest)
 def get_free_slots():

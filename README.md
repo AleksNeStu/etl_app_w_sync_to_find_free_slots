@@ -87,10 +87,11 @@ https://builds.lundalogik.com/api/v1/builds/freebusy/versions/1.0.0/file
 
 **Application work explanation:**
 
-1) First sync is happening on the 1st app run time
+1) First sync is happening on the 1st app run time `app.py`
 (in case app.run(debug=True) app will run 2 times - consider it). Then based on
 settings.SYNC_INTERVAL value. All sync actions logged and stored to DB `Sync` table.
-
+In case of regular sync and no new data from remote server it will be skipped,
+to avoid spamming and redundant actions from app side.
 
 2) There is a possibility to run sync manually via web handler: \
 http://localhost:5000/load_data - regular sync
@@ -133,10 +134,84 @@ http://localhost:5000/load_data?forced=1 - forced sync
 }
 ```
 
+3) During sync, remote data is parsed by pandas initially to 2 data frames 
+(2 columns) of users and meets (columns) without deleting anything for future
+analyze purposes.
+
+4) ...
+
+5) Find free slots: \
+URL: 
+http://localhost:5000/get_free_slots
+
+Request:
+```JS
+fetch('http://localhost:5000/get_free_slots', {
+    method: 'POST',
+    body: JSON.stringify({
+        'users_ids': '13,77,99',
+        'start_date': '2015-02-02T06:00:00',
+        'end_date': '2015-02-03T20:00:00',
+        'meet_len': 30,
+        'start_work': '08:30:00',
+        'end_work': '17:30:00',
+    }),
+    headers: {
+        'Content-type': 'application/json; charset=UTF-8',
+    },
+})
+    .then((response) => response.json())
+    .then((json) => console.log(json));
+```
+
+Response:
+```JSON
+{
+    "busy_slots_meta": {
+        "count": 227,
+        "max": "<Timeslot(start=2015-03-31 15:00:00, end=2015-03-31 15:30:00)>",
+        "min": "<Timeslot(start=2015-01-01 09:00:00, end=2015-01-01 14:00:00)>"
+    },
+    "free_slots": [
+        "<Timeslot(start=2015-02-02 08:30:00, end=2015-02-02 09:00:00)>",
+        "<Timeslot(start=2015-02-02 09:00:00, end=2015-02-02 09:30:00)>",
+        "<Timeslot(start=2015-02-02 12:00:00, end=2015-02-02 12:30:00)>",
+        "<Timeslot(start=2015-02-02 13:00:00, end=2015-02-02 13:30:00)>",
+        "<Timeslot(start=2015-02-02 13:30:00, end=2015-02-02 14:00:00)>",
+        "<Timeslot(start=2015-02-02 14:00:00, end=2015-02-02 14:30:00)>",
+        "<Timeslot(start=2015-02-02 15:30:00, end=2015-02-02 16:00:00)>",
+        "<Timeslot(start=2015-02-02 16:00:00, end=2015-02-02 16:30:00)>",
+        "<Timeslot(start=2015-02-02 16:30:00, end=2015-02-02 17:00:00)>",
+        "<Timeslot(start=2015-02-02 17:00:00, end=2015-02-02 17:30:00)>",
+        "<Timeslot(start=2015-02-03 09:00:00, end=2015-02-03 09:30:00)>",
+        "<Timeslot(start=2015-02-03 09:30:00, end=2015-02-03 10:00:00)>",
+        "<Timeslot(start=2015-02-03 10:30:00, end=2015-02-03 11:00:00)>",
+        "<Timeslot(start=2015-02-03 11:00:00, end=2015-02-03 11:30:00)>",
+        "<Timeslot(start=2015-02-03 11:30:00, end=2015-02-03 12:00:00)>",
+        "<Timeslot(start=2015-02-03 12:00:00, end=2015-02-03 12:30:00)>",
+        "<Timeslot(start=2015-02-03 12:30:00, end=2015-02-03 13:00:00)>",
+        "<Timeslot(start=2015-02-03 13:00:00, end=2015-02-03 13:30:00)>",
+        "<Timeslot(start=2015-02-03 13:30:00, end=2015-02-03 14:00:00)>",
+        "<Timeslot(start=2015-02-03 15:00:00, end=2015-02-03 15:30:00)>",
+        "<Timeslot(start=2015-02-03 15:30:00, end=2015-02-03 16:00:00)>",
+        "<Timeslot(start=2015-02-03 16:00:00, end=2015-02-03 16:30:00)>",
+        "<Timeslot(start=2015-02-03 16:30:00, end=2015-02-03 17:00:00)>",
+        "<Timeslot(start=2015-02-03 17:00:00, end=2015-02-03 17:30:00)>"
+    ],
+    "free_slots_meta": {
+        "count": 24,
+        "max": "<Timeslot(start=2015-02-03 17:00:00, end=2015-02-03 17:30:00)>",
+        "min": "<Timeslot(start=2015-02-02 08:30:00, end=2015-02-02 09:00:00)>"
+    },
+    "overlapped_w_busy_slots": true,
+    "search_params": "{'users_ids': [13, 77, 99], 'exp_slot': <Timeslot(start=2015-02-02 06:00:00+00:00, end=2015-02-03 20:00:00+00:00)>, 'exp_meet_len': datetime.timedelta(seconds=1800), 'exp_working_hours': WorkingHours(start=datetime.time(8, 30), end=datetime.time(17, 30))}"
+}
+```
+
 [Example of full load data resp](meet_app/data/json/load_data_resp.json)
 
 
-**Dependencies:**
+**Run the application:**
 
 1) Run via docker containers:
     - Install [docker](https://docs.docker.com/get-docker/)
@@ -166,36 +241,6 @@ http://localhost:5000/load_data?forced=1 - forced sync
     poetry shell
     poetry install
     ```
-
-3. Access to application:
-   - Via browser http://localhost:8080/ \
-   NOTE: FE (UI) is not mandatory, will be added based on the time capacity.
-   - Via API requests: \
-   a) [Fetch API of Chrome](https://jsonplaceholder.typicode.com/) e.g.:
-      ```js
-      // GET
-      fetch('https://jsonplaceholder.typicode.com/posts/1')
-          .then(res => res.json())
-          .then(console.log)
-   
-      // POST
-      fetch('https://jsonplaceholder.typicode.com/posts', {
-          method: 'POST',
-          body: JSON.stringify({
-              title: 'foo',
-              body: 'bar',
-              userId: 1
-          }),
-          headers: {
-              'Content-type': 'application/json; charset=UTF-8'
-          }
-      })
-          .then(res => res.json())
-          .then(console.log)
-      ```
-      b) Postman app prepared [collection](https://learning.postman.com/docs/collaborating-in-postman/sharing/)
-   
-      [Download](tests/data/postman_collection.json), import and [run](https://learning.postman.com/docs/running-collections/working-with-data-files/) the collection.
 
 ### 2.2 TODO
 - Add tests/data/postman_collection.json - actual data

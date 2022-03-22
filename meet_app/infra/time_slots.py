@@ -71,7 +71,7 @@ EXP_WORKING_HOURS = py_utils.WorkingHours(time(8, 30), time(17, 30))
 
 EXP_MEET_LEN = timedelta(minutes=30)
 
-USERS_IDS = [1, 2, 8, 9]
+USERS_IDS = [13, 77, 99]  # 227 busy slots
 
 
 @Timer(text=f"Time consumption for {'get_slot_from_slots'}: {{:.3f}}")
