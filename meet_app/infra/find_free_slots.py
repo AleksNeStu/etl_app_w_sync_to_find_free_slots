@@ -1,4 +1,5 @@
 import dataclasses
+import logging
 from datetime import datetime, timedelta, time
 
 from codetiming import Timer
@@ -237,20 +238,35 @@ def get_busy_slots(users_ids):
 
 # @Timer(text=f"Time consumption for {'get_free_slots'}: {{:.3f}}")
 def get_free_slots(users_ids, exp_slot, exp_meet_len, exp_working_hours):
-    free_slots = []
     busy_slots = get_busy_slots(users_ids)
     all_slots = extract_all_slots(busy_slots, exp_slot, exp_working_hours)
 
+    w_start_t = exp_working_hours.start  # w1
+    w_end_t = exp_working_hours.end  # w2
+    free_slots = []
+
     for i in range(len(all_slots) - 1):
-        start, end = (all_slots[i].end, all_slots[i + 1].start)
-        if start <= end:
-            raise Exception(
-                f'Error on getting free time slots for users: {users_ids}')
+        current, next = (all_slots[i], all_slots[i + 1])
+        start, end = current.end, next.start
+        #TODO: Handle first and last and rest of the cases
+        # if start <= end:
+        #     raise Exception(
+        #         f'Error on getting free time slots for users: {users_ids}')
 
         while start + exp_meet_len <= end:
-            free_slots.append((start, start + exp_meet_len))
-            print("{:%m/%d/%Y, %H:%M:%S} - {:%m/%d/%Y, %H:%M:%S}".format(
-                start, start + exp_meet_len))
+            free_slot = Timeslot(start, start + exp_meet_len)
+            # Limited to working hours.
+            start_t = free_slot.start.time()
+            end_t = free_slot.end.time()
+            if (w_start_t <= start_t < w_end_t and
+                w_start_t < end_t <= w_end_t):
+
+                free_slots.append(free_slot)
+            # For debugging purposes.
+            # print(
+            #     "{:%m/%d/%Y, %H:%M:%S} - {:%m/%d/%Y, %H:%M:%S}".format(
+            #         start, start + exp_meet_len))
+
             start += exp_meet_len
 
     return free_slots
