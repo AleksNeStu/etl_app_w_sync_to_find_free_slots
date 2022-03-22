@@ -30,10 +30,13 @@ def convert_get_slots_data(data):
         get_slots_data['end_work'] = py_utils.parse_req_t(
             data['end_work'])
     except Exception:
-        return
+        data['get_free_slots'] = False
+        return data
 
     if None in get_slots_data.values():
-        return
+        data['get_free_slots'] = False
+        return data
+
     # Convertor of get free slots: '/get_free_slots'
     return data.update(get_slots_data)
 

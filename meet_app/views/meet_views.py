@@ -42,7 +42,7 @@ def load_meet_data():
 def get_free_slots():
     req_data = request_data(flask.request)
 
-    if req_data is None:
+    if req_data.get_free_slots is False:
         return 'Bad request to get free slots', 400
 
 
