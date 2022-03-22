@@ -142,9 +142,23 @@ http://localhost:5000/load_data?forced=1 - forced sync
 (2 columns) of users and meets (columns) without deleting anything for future
 analyze purposes.
 
-4) ...
+4) Then from extracted pandas collections users data is storing to DB table
+`users` using SA ORM as well as relation to `sync` table.
+Not parsed items are storing to DB table `not_synced_items` with a reason desc.
 
-5) Find free slots: \
+5) Nex step is, from extracted pandas collections meets data is storing to 
+DB table `meets` using SA ORM as well as relation to `sync` and users table.
+Not parsed items are storing to DB table `not_synced_items` with a reason desc.
+
+NOTE: Avoided data duplication.
+
+6Added but not used migration mechanism via alembic with utils (
+due to demo app)
+
+7To use application need to run it locally `app.py` or via docker container.
+See desc bellow.
+
+8To find free slots: \
 URL: 
 http://localhost:5000/get_free_slots
 
@@ -218,9 +232,10 @@ Response:
 [Example of full load data resp](meet_app/data/json/load_data_resp.json)
 
 
-**Run the application:**
+**Run the application:** 
 
-1) Run via docker containers:
+1) Run via docker containers (To be updated!!!):
+
     - Install [docker](https://docs.docker.com/get-docker/)
       and [Docker Compose](https://docs.docker.com/compose/install/)
     - Build and run docker containers:
@@ -244,26 +259,30 @@ Response:
     - Install Python dependency management and packaging tool [poetry](https://python-poetry.org/docs/)
     - Install dependencies to .venv dir of the project
     ```sh
+    source .venv/bin/activate
     poetry config virtualenvs.in-project true
     poetry shell
     poetry install
     ```
+   - Run application using bash script: \
+  `cd scripts ; ./run_app_sql_ver.sh` \
+   - CLI: \
+   `export IS_DEPLOY='0' IS_SQL_VERSION='1' && python3 meet_app/app.py run --port=5000 --host=0.0.0.0 --without-threads`
+   
 
 ### 2.2 TODO
-- Add tests/data/postman_collection.json - actual data
-- After project finish add docker and local run details to md file.
-- For nor app load data from 3rd party API without storing to the file
-  system,and pars load data to DB. Improve by adding async version, errors
-  checks of API and parsing etc and format of data, versioning of downloaded
-  data for future (like dumps) for investigation purposes, data merge logic.
-- Rewrite interpretation
-- Decided to do not add migration chain, to avoid of increasing complexity of test task run.
-- Redo 2.1 interpretation part.
-- Redo to mysql version w/ a docker containers.
-- Consider documented DB like MongoDB version switch w/ ODM.
-- Didn't used pandas possibilities to analyze data time slots to make pandas layer only
-responsible to initial extracting and inconsistency analyze
-- Add simple UI to find free slots
+*In scope:*
+- Create docker container and push to docker hub. Add desc to README.MD
+- Unit and integration tests
+- UI to find free slots
+
+*Backlog:*
+- Logging and timeing
+- Code cleanup and refactoring
+- MySQL version + Docker redo
+- E2E tests * Since UI ready
+- Add deploy version and desc
+- Deploy application to cloud (GCP, AWS ?)
 
 ### 2.3 Examples
 1. Result of sync response via web handler:
