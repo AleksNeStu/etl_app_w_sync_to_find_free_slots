@@ -1,6 +1,8 @@
 import os
-from utils import db as db_utils
+
 import dotenv
+
+from utils import db as db_utils
 
 # APP
 APP_ROOT_DIR = os.getenv('APP_ROOT_DIR', os.path.dirname(__file__))
@@ -87,8 +89,8 @@ SYNC_DATA_URL = ('https://builds.lundalogik.com/api/v1/'
 # apscheduler.triggers.interval.IntervalTrigger
 SYNC_INTERVAL = dict(weeks=0, days=0, hours=0, minutes=30, seconds=0)
 
-# Parsing
-# e.g. '3/13/2015 2:00:00 PM'
 # %I - hour, using a 12-hour clock (01 to 12)
 # https://docs.python.org/3/library/datetime.html
-DATA_TIME_FORMAT = '%m/%d/%Y %I:%M:%S %p'
+DATA_TIME_SYNC_SERVER_FORMAT = '%m/%d/%Y %I:%M:%S %p'  # e.g. '3/13/2015 2:00:00 PM'
+DATA_TIME_REQUEST_FORMAT = '%Y-%m-%dT%H:%M:%S'  # 2012-05-23T20:00:00
+TIME_REQUEST_FORMAT = '%H:%M:%S' # 17:30:00
