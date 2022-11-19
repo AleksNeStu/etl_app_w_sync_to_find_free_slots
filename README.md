@@ -1,4 +1,4 @@
-# Application to get suggestions for suitable meeting times
+# ETL app to get suggestions for suitable meeting times
 
 <p align="center">
 <img src="assets/free_slots_resp_json.png" alt="App result of get free slots" width="80%">
